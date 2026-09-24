@@ -100,10 +100,7 @@ export function SiteHeader({ theme = "light" }: SiteHeaderProps) {
             <img
               src="/logo.png"
               alt="StartupUniv"
-              className={cn(
-                "h-6 md:h-7 w-auto",
-                isDark && "box-content rounded-md bg-[#F6F1E9] px-2 py-1"
-              )}
+              className="h-10 md:h-12 w-auto"
             />
           </Link>
 
@@ -265,7 +262,7 @@ export function SiteHeader({ theme = "light" }: SiteHeaderProps) {
                   <div className="flex flex-col h-full">
                   <div className="flex items-center justify-between p-6 border-b border-gray-200">
                     <Link href="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center">
-                      <img src="/logo.png" alt="StartupUniv" className="h-6 w-auto" />
+                      <img src="/logo.png" alt="StartupUniv" className="h-10 w-auto" />
                     </Link>
                   </div>
 
