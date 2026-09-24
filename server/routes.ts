@@ -39,6 +39,8 @@ import { updateAllTeamsHealth, updateTeamHealth } from "./team-health-calculator
 import { registerTicketRoutes } from "./ticketRoutes";
 import { registerChatRoutes } from "./chatRoutes";
 import { registerSprintExportRoutes } from "./sprintExportRoutes";
+import { registerConvexMediaRoutes } from "./convexMediaRoutes";
+import { convexStorage } from "./convexStorage";
 import { sql, eq, asc, and } from "drizzle-orm";
 import { db } from "./db";
 import {
@@ -531,6 +533,18 @@ export async function registerRoutes(
   // isTeamMemberOrAdmin is a hoisted declaration below, passed in so the export
   // routes scope to a team the same way the other sprint endpoints do.
   registerSprintExportRoutes(app, { requireRole, isTeamMemberOrAdmin });
+
+  // File/image/video storage backed by Convex. Registered alongside the S3
+  // paths rather than replacing them, so features can move across one at a
+  // time. Skipped entirely when the deployment is not configured, which keeps
+  // environments without CONVEX_URL booting exactly as before.
+  if (convexStorage.isConfigured()) {
+    registerConvexMediaRoutes(app, { requireAuth });
+  } else {
+    console.warn(
+      "Convex media routes disabled: set CONVEX_URL and CONVEX_SERVICE_SECRET to enable them",
+    );
+  }
 
   // Validation endpoint: check whether email/phone already exists for a role
   app.post("/api/applications/validate-contact", async (req, res) => {

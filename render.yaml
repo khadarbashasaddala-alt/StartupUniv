@@ -18,7 +18,7 @@ services:
     plan: free
     region: singapore
     branch: main
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /health
     envVars:
@@ -89,4 +89,14 @@ services:
       - key: RAZORPAY_KEY_ID
         sync: false
       - key: RAZORPAY_KEY_SECRET
+        sync: false
+
+      # Convex file/image/video storage. The media API stays disabled until
+      # CONVEX_URL and CONVEX_SERVICE_SECRET are both set; the secret must
+      # match the one on the deployment (npx convex env set).
+      - key: CONVEX_URL
+        value: https://shiny-cheetah-636.eu-west-1.convex.cloud
+      - key: CONVEX_SITE_URL
+        value: https://shiny-cheetah-636.eu-west-1.convex.site
+      - key: CONVEX_SERVICE_SECRET
         sync: false

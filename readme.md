@@ -179,8 +179,59 @@ The platform uses a comprehensive relational schema including:
 - Support for multiple file types (documents, images, demos)
 - Uppy.js integration for enhanced upload experience
 
+**Convex Storage (files, images, video):**
 
+A second storage backend, added alongside S3 rather than replacing it, so
+features can move across one at a time. Relational data stays in Postgres --
+Convex holds blobs and the metadata describing them (`convex/schema.ts`).
 
+Layout:
+
+| Path | Role |
+| --- | --- |
+| `convex/schema.ts` | The `media` table: storageId, kind, size, owner, context, visibility |
+| `convex/media.ts` | Upload URL, record, fetch, list, delete |
+| `convex/http.ts` | `GET /media?id=` -- serves public blobs straight to the browser |
+| `server/convexStorage.ts` | `ConvexStorageService`, shaped like `S3StorageService` |
+| `server/convexMediaRoutes.ts` | `/api/media` REST surface, session-checked |
+| `client/src/lib/convexMedia.ts` | `uploadMedia`, `getMedia`, `listMediaByContext`, `deleteMedia` |
+
+Upload is a three-step handshake, and the file bytes never pass through the
+Express process -- the browser sends them straight to Convex. That is what
+makes large video uploads viable:
+
+1. `POST /api/media/upload-url` → a one-shot URL
+2. browser `POST`s the file to that URL → `{ storageId }`
+3. `POST /api/media` with the storageId → `{ mediaId }`, filed against the session user
+
+Owner, size and content type are all read from the session or from Convex,
+never from the request body, so a client cannot file an upload under another
+user's name or misreport its size.
+
+Private media (the default) is only readable through
+`GET /api/media/:id/content`, which re-checks the session. Media uploaded with
+`visibility: "public"` gets a durable URL on the `.convex.site` domain that an
+`<img>` or `<video>` tag can use directly -- it redirects to the underlying
+storage URL, which honours range requests, so video players can seek.
+
+**First-time setup:**
+
+```bash
+npx convex dev          # log in, link the deployment, generate convex/_generated
+npx convex env set CONVEX_SERVICE_SECRET <the value from .env>
+```
+
+`CONVEX_SERVICE_SECRET` must match on both sides. Convex functions are callable
+by any browser that knows the deployment URL, so the media functions refuse
+callers that cannot present it -- which leaves the Express server as the only
+one that can write. Until `CONVEX_URL` and `CONVEX_SERVICE_SECRET` are both
+set, `registerConvexMediaRoutes` is skipped and the app boots exactly as before.
+
+`server/convexStorage.ts` uses Convex's untyped `anyApi` references rather than
+the generated `api` object, because `convex/_generated` only exists after
+`npx convex dev` has run and that needs an interactive login -- this way a clean
+checkout and CI both still build. Swap it for the generated `api` if you want
+the function args type-checked in the server.
 
 ### Business Logic.
 
