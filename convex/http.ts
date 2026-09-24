@@ -1,7 +1,6 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { api } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
 
 const http = httpRouter();
 
@@ -28,9 +27,9 @@ http.route({
       return new Response("Missing id", { status: 400 });
     }
 
-    const media = await ctx.runQuery(api.media.getPublicUrl, {
-      mediaId: id as Id<"media">,
-    });
+    // getPublicUrl normalises the id itself and returns null when it does not
+    // name a row, so a malformed id lands on the same 404 as a missing one.
+    const media = await ctx.runQuery(api.media.getPublicUrl, { mediaId: id });
     if (!media?.url) {
       return new Response("Not found", { status: 404 });
     }

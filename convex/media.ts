@@ -153,9 +153,15 @@ export const remove = mutation({
  * behind the Express session check even though this query is world-callable.
  */
 export const getPublicUrl = query({
-  args: { mediaId: v.id("media") },
+  // A plain string rather than v.id("media"): this query is reached straight
+  // from a browser URL, so an unparseable id is an ordinary miss to be
+  // answered with 404, not an argument-validator error the caller sees as 500.
+  args: { mediaId: v.string() },
   handler: async (ctx, args) => {
-    const media = await ctx.db.get(args.mediaId);
+    const mediaId = ctx.db.normalizeId("media", args.mediaId);
+    if (!mediaId) return null;
+
+    const media = await ctx.db.get(mediaId);
     if (!media || media.visibility !== "public") return null;
 
     return {
