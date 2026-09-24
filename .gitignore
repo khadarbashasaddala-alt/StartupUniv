@@ -100,3 +100,6 @@ sendgrid.env
 *.pem
 *.key
 startupvarsity-key.pem
+
+# Local deployment notes — contains live credentials
+DEPLOYMENT-NOTES.md

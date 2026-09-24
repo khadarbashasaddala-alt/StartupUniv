@@ -30,11 +30,17 @@ import {
 /**
  * Two audiences, two visual worlds, one platform.
  *
- * Colour carries the split so a reader always knows which track they are in:
- *   ochre  #A85A1C  -> college teams, on the warm paper ground
- *   teal   #17646E  -> startup builders, on deep petrol #12333A
- * Both accents are pulled from the product's own palette so the marketing site
- * and the portal read as one product.
+ * The whole page is one brown ground, #814B28, from the header down to the
+ * closing card; only the footer keeps its green. Nothing alternates, so the
+ * two audiences are told apart by wording and order rather than by colour.
+ *
+ * On that ground: white for headings, white/75 for body, white/60 for the
+ * small caps labels, sand #F0D8C0 for accents and solid buttons (with #5C3318
+ * as the text on them), and white/15 for every rule and card edge.
+ *
+ * Two things stay light on purpose -- the hero art plate and the partner logo
+ * chips -- because those marks ship with their own white and navy lockups and
+ * are illegible directly on brown.
  */
 
 const studentFlow = [
@@ -170,6 +176,18 @@ const sharedPlatform = [
   { title: "Certificates", body: "Issued on completion, with outcomes recorded.", icon: GraduationCap },
 ];
 
+/* The hero states the offer as scannable facts before any prose. Both lists are
+   the old hero paragraphs, broken into the units a reader actually scans. */
+const heroFacts = [
+  { label: "College teams", icon: GraduationCap },
+  { label: "Startup builders", icon: Rocket },
+  { label: "Clear ownership", icon: ListChecks },
+  { label: "Meaningful deadlines", icon: CalendarClock },
+  { label: "Visible progress", icon: BarChart3 },
+];
+
+const heroChips = ["Owned tasks", "Daily standups", "Mentor reviews", "Evidence of the work"];
+
 const universityPartners = [
   { src: "/landing/home/partner-vtu.png", alt: "VTU" },
   { src: "/landing/home/partner-jain.png", alt: "Jain University" },
@@ -193,79 +211,74 @@ const partnerTrack = Array.from({ length: 4 }, () => allPartners).flat();
 
 export default function HomePage() {
   return (
-    <SiteLayout hideCTA>
+    <SiteLayout hideCTA headerTheme="dark" surfaceClassName="bg-[#814B28]">
       {/* ---------------------------------------------------------------- */}
-      {/* Hero — one shared truth, then two clearly marked doors            */}
+      {/* Hero — warm sandstone stage: the claim left, the work right        */}
       {/* ---------------------------------------------------------------- */}
-      <section className="py-14 md:py-20 lg:py-24">
+      <section className="bg-[#814B28] pb-14 pt-12 text-white md:pb-20 md:pt-16">
         <div className="mx-auto max-w-[1300px] px-5 sm:px-8 lg:px-12">
-          <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+          <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-14">
             <div>
-              <p className="mb-5 text-xs font-semibold uppercase tracking-[0.18em] text-[#6B6259]">
-                For college teams and startup builders
-              </p>
-              <h1 className="font-serif text-fluid-hero font-normal tracking-tight text-[#12333A]">
-                Don't let your best work end with a submission—or your startup stall after launch.
+              <h1 className="text-fluid-h1 font-light tracking-tight text-white">
+                Don't let your best work end with a submission—
+                <span className="font-semibold">or your startup stall after launch.</span>
               </h1>
-              <p className="mt-5 max-w-xl text-fluid-h3 font-medium leading-snug text-[#12333A]">
+
+              <p className="mt-4 text-fluid-h3 font-medium text-[#F0D8C0]">
                 Turn ideas into things that keep growing.
               </p>
-              <p className="mt-6 max-w-xl text-fluid-body text-[#4A453F]">
-                Great teams move faster with clear ownership, meaningful deadlines, and visible
-                progress.
-              </p>
-              <p className="mt-4 max-w-xl text-fluid-body text-[#4A453F]">
-                StartupUniv gives teams the structure to turn ideas into outcomes — owned tasks,
-                daily standups, mentor reviews against a clear rubric, and evidence that shows the
-                work in action.
+
+              <p className="mt-4 max-w-xl text-fluid-body text-white/80">
+                StartupUniv gives teams the structure to turn ideas into outcomes.
               </p>
 
-              <div className="mt-9 grid gap-4 sm:grid-cols-2">
+              <ul className="mt-7 flex flex-wrap items-center gap-x-7 gap-y-3">
+                {heroFacts.map((fact) => (
+                  <li key={fact.label} className="flex items-center gap-2 text-sm text-white/90">
+                    <fact.icon className="h-[18px] w-[18px] shrink-0 text-[#DCB48C]" />
+                    {fact.label}
+                  </li>
+                ))}
+              </ul>
+
+              <ul className="mt-6 flex flex-wrap gap-3">
+                {heroChips.map((chip) => (
+                  <li
+                    key={chip}
+                    className="rounded-full border border-[#DCB48C]/45 px-4 py-2 text-sm text-white/90"
+                  >
+                    {chip}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-8 flex flex-wrap items-center gap-3">
                 <a
                   href="#college-teams"
-                  className="group rounded-2xl border border-[#A85A1C]/25 bg-[#A85A1C]/[0.06] p-5 transition-colors hover:bg-[#A85A1C]/[0.11]"
+                  className="group inline-flex items-center gap-3 rounded-xl bg-[#F0D8C0] px-6 py-4 text-sm font-semibold uppercase tracking-[0.08em] text-[#5C3318] transition-colors hover:bg-[#F6EFE6]"
                 >
-                  <div className="flex items-center gap-2 text-[#A85A1C]">
-                    <GraduationCap className="h-5 w-5 shrink-0" />
-                    <span className="text-sm font-semibold">I'm on a college team</span>
-                  </div>
-                  <p className="mt-2 text-sm leading-relaxed text-[#4A453F]">
-                    Take your own project all the way to production, with mentoring and a team that
-                    actually delivers.
-                  </p>
-                  <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[#A85A1C]">
-                    See how it works
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                  </span>
+                  I'm on a college team
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </a>
-
                 <a
                   href="#startup-builders"
-                  className="group rounded-2xl border border-[#17646E]/25 bg-[#17646E]/[0.06] p-5 transition-colors hover:bg-[#17646E]/[0.11]"
+                  className="group inline-flex items-center gap-3 rounded-xl border border-[#F0D8C0]/45 px-6 py-4 text-sm font-semibold uppercase tracking-[0.08em] text-[#F0D8C0] transition-colors hover:border-[#F0D8C0] hover:bg-[#F0D8C0] hover:text-[#5C3318]"
                 >
-                  <div className="flex items-center gap-2 text-[#17646E]">
-                    <Rocket className="h-5 w-5 shrink-0" />
-                    <span className="text-sm font-semibold">I'm building a startup</span>
-                  </div>
-                  <p className="mt-2 text-sm leading-relaxed text-[#4A453F]">
-                    Run the whole company — build, sell, market and maintain — on milestones that
-                    hold.
-                  </p>
-                  <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[#17646E]">
-                    See how it works
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                  </span>
+                  I'm building a startup
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </a>
               </div>
             </div>
 
-            {/* The hero art already carries its own quote panel, so nothing is
-                overlaid on it here. */}
-            <div className="overflow-hidden rounded-[28px] border border-[#E3D9CC] bg-white shadow-sm">
+            {/* The art is a composed graphic with a caption baked into it, so it
+                is shown whole at its own ratio — cropping it loses the caption. */}
+            <div className="overflow-hidden rounded-[20px] border border-[#F0D8C0]/20 bg-[#F6F1E9] shadow-2xl">
               <img
                 src="/landing/home-hero.png"
                 alt="A StartupUniv team working together"
-                className="h-full w-full object-cover"
+                className="block h-auto w-full"
+                width={1307}
+                height={1203}
                 loading="eager"
               />
             </div>
@@ -276,25 +289,29 @@ export default function HomePage() {
       {/* ---------------------------------------------------------------- */}
       {/* Proof — academic and industry partners in one scrolling band      */}
       {/* ---------------------------------------------------------------- */}
-      <section className="border-y border-[#E3D9CC] bg-[#F6F1E9] py-12 md:py-16">
+      <section className="border-y border-white/15 py-12 text-white md:py-16">
         <div className="mx-auto max-w-[1300px] px-5 sm:px-8 lg:px-12">
-          <p className="mb-8 text-center text-xs font-semibold uppercase tracking-[0.16em] text-[#6B6259]">
+          <p className="mb-8 text-center text-xs font-semibold uppercase tracking-[0.16em] text-white/60">
             Academic and industry partners
           </p>
           <div className="marquee-mask overflow-hidden">
-            <div className="animate-marquee-rtl flex w-max items-center gap-x-16 md:gap-x-20">
+            <div className="animate-marquee-rtl flex w-max items-center gap-x-5 md:gap-x-6">
               {partnerTrack.map((p, i) => {
                 const isFirstPass = i < allPartners.length;
                 return (
-                  <img
+                  <div
                     key={`${p.alt}-${i}`}
-                    src={p.src}
-                    /* Only the first pass is announced; the repeats are decorative. */
-                    alt={isFirstPass ? p.alt : ""}
-                    aria-hidden={!isFirstPass}
-                    className="h-12 w-auto max-w-[150px] shrink-0 object-contain opacity-90 md:h-16"
-                    loading="eager"
-                  />
+                    className="flex h-[88px] w-[170px] shrink-0 items-center justify-center rounded-xl bg-[#F6F1E9] px-5 md:h-24 md:w-[190px]"
+                  >
+                    <img
+                      src={p.src}
+                      /* Only the first pass is announced; the repeats are decorative. */
+                      alt={isFirstPass ? p.alt : ""}
+                      aria-hidden={!isFirstPass}
+                      className="h-10 w-auto max-w-full object-contain md:h-12"
+                      loading="eager"
+                    />
+                  </div>
                 );
               })}
             </div>
@@ -305,24 +322,24 @@ export default function HomePage() {
       {/* ---------------------------------------------------------------- */}
       {/* Track one — college teams (ochre, on paper)                       */}
       {/* ---------------------------------------------------------------- */}
-      <section id="college-teams" className="scroll-mt-20 py-16 md:py-24">
+      <section id="college-teams" className="scroll-mt-20 py-16 text-white md:py-24">
         <div className="mx-auto max-w-[1300px] px-5 sm:px-8 lg:px-12">
           <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
             <div className="lg:sticky lg:top-24 lg:self-start">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[#A85A1C]/30 bg-[#A85A1C]/[0.07] px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#A85A1C]">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#F0D8C0]/35 bg-[#F0D8C0]/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#F0D8C0]">
                 <GraduationCap className="h-3.5 w-3.5" />
                 For college teams
               </span>
-              <h2 className="mt-6 font-serif text-fluid-h1 font-normal tracking-tight text-[#12333A]">
+              <h2 className="mt-6 font-serif text-fluid-h1 font-normal tracking-tight text-white">
                 Bring your own project. Finish it properly.
               </h2>
-              <p className="mt-5 text-fluid-body text-[#4A453F]">
+              <p className="mt-5 text-fluid-body text-white/75">
                 Your team, your idea, your coursework. What you get from us is the part colleges
                 rarely teach: how to break work into tasks somebody actually owns, how to hold a
                 deadline, how to review each other's work, and how to carry a project past the demo
                 into something that runs.
               </p>
-              <div className="mt-8 overflow-hidden rounded-2xl border border-[#E3D9CC]">
+              <div className="mt-8 overflow-hidden rounded-2xl border border-white/15">
                 <img
                   src="/landing/home/build-team-mentorship.png"
                   alt="A mentor reviewing work with a student team"
@@ -332,21 +349,23 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div>
-              <p className="mb-6 text-sm font-semibold uppercase tracking-[0.14em] text-[#6B6259]">
+            {/* Dropped on lg so the timeline starts level with the copy rather
+                than the eyebrow, and runs down past the photo beside it. */}
+            <div className="lg:pt-28">
+              <p className="mb-6 text-sm font-semibold uppercase tracking-[0.14em] text-white/60">
                 One sprint, start to finish
               </p>
-              <ol className="relative space-y-7 border-l border-[#E3D9CC] pl-7">
+              <ol className="relative space-y-7 border-l border-white/15 pl-7">
                 {studentFlow.map((s) => (
                   <li key={s.step} className="relative">
-                    <span className="absolute -left-[38px] flex h-[26px] w-[26px] items-center justify-center rounded-full border border-[#A85A1C]/35 bg-[#FAF7F3] text-[10px] font-semibold text-[#A85A1C]">
+                    <span className="absolute -left-[38px] flex h-[26px] w-[26px] items-center justify-center rounded-full border border-[#F0D8C0]/40 bg-[#814B28] text-[10px] font-semibold text-[#F0D8C0]">
                       {s.step}
                     </span>
                     <div className="flex items-center gap-2">
-                      <s.icon className="h-4 w-4 shrink-0 text-[#A85A1C]" />
-                      <h3 className="font-semibold text-[#12333A]">{s.title}</h3>
+                      <s.icon className="h-4 w-4 shrink-0 text-[#F0D8C0]" />
+                      <h3 className="font-semibold text-white">{s.title}</h3>
                     </div>
-                    <p className="mt-1.5 text-[15px] leading-relaxed text-[#4A453F]">{s.body}</p>
+                    <p className="mt-1.5 text-[15px] leading-relaxed text-white/75">{s.body}</p>
                   </li>
                 ))}
               </ol>
@@ -357,25 +376,25 @@ export default function HomePage() {
             {studentOutcomes.map((o) => (
               <div
                 key={o.title}
-                className="rounded-2xl border-t-2 border-[#A85A1C]/45 bg-white/70 p-5"
+                className="rounded-2xl border-t-2 border-[#F0D8C0]/50 bg-white/[0.07] p-5"
               >
-                <o.icon className="h-5 w-5 text-[#A85A1C]" />
-                <h3 className="mt-3 font-semibold leading-snug text-[#12333A]">{o.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[#4A453F]">{o.body}</p>
+                <o.icon className="h-5 w-5 text-[#F0D8C0]" />
+                <h3 className="mt-3 font-semibold leading-snug text-white">{o.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-white/75">{o.body}</p>
               </div>
             ))}
           </div>
 
           <div className="mt-10 flex flex-wrap items-center gap-4">
             <Link href="/for-students">
-              <Button className="rounded-full bg-[#A85A1C] px-7 py-6 text-base font-medium text-white hover:bg-[#8F4B15]">
+              <Button className="rounded-full bg-[#F0D8C0] px-7 py-6 text-base font-medium text-[#5C3318] hover:bg-[#F6EFE6]">
                 For college teams
               </Button>
             </Link>
             <Link href="/apply">
               <Button
                 variant="outline"
-                className="rounded-full border-2 border-[#A85A1C] px-7 py-6 text-base font-medium text-[#A85A1C] hover:bg-[#A85A1C] hover:text-white"
+                className="rounded-full border-2 border-[#F0D8C0] px-7 py-6 text-base font-medium text-[#F0D8C0] hover:bg-[#F0D8C0] hover:text-[#5C3318]"
               >
                 Start a project
               </Button>
@@ -387,10 +406,10 @@ export default function HomePage() {
       {/* ---------------------------------------------------------------- */}
       {/* Track two — startup builders (teal, on deep petrol)               */}
       {/* ---------------------------------------------------------------- */}
-      <section id="startup-builders" className="scroll-mt-20 bg-[#12333A] py-16 text-white md:py-24">
+      <section id="startup-builders" className="scroll-mt-20 bg-[#814B28] py-16 text-white md:py-24">
         <div className="mx-auto max-w-[1300px] px-5 sm:px-8 lg:px-12">
           <div className="max-w-3xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#7FD3DD]">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#F0D8C0]">
               <Rocket className="h-3.5 w-3.5" />
               For startup builders
             </span>
@@ -406,8 +425,8 @@ export default function HomePage() {
 
           <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-white/15 bg-white/15 sm:grid-cols-2 lg:grid-cols-4">
             {startupPillars.map((p) => (
-              <div key={p.label} className="bg-[#12333A] p-6">
-                <p.icon className="h-6 w-6 text-[#7FD3DD]" />
+              <div key={p.label} className="bg-[#814B28] p-6">
+                <p.icon className="h-6 w-6 text-[#F0D8C0]" />
                 <h3 className="mt-4 font-serif text-2xl font-normal text-white">{p.label}</h3>
                 <p className="mt-2.5 text-sm leading-relaxed text-white/70">{p.body}</p>
               </div>
@@ -423,7 +442,7 @@ export default function HomePage() {
                 {startupSystem.map((f) => (
                   <div key={f.title}>
                     <div className="flex items-center gap-2">
-                      <f.icon className="h-4 w-4 shrink-0 text-[#7FD3DD]" />
+                      <f.icon className="h-4 w-4 shrink-0 text-[#F0D8C0]" />
                       <h3 className="font-semibold text-white">{f.title}</h3>
                     </div>
                     <p className="mt-1.5 text-[15px] leading-relaxed text-white/70">{f.body}</p>
@@ -443,14 +462,14 @@ export default function HomePage() {
 
           <div className="mt-12 flex flex-wrap items-center gap-4">
             <Link href="/for-professionals">
-              <Button className="rounded-full bg-[#7FD3DD] px-7 py-6 text-base font-medium text-[#0B242A] hover:bg-[#9BE0E8]">
+              <Button className="rounded-full bg-[#F0D8C0] px-7 py-6 text-base font-medium text-[#5C3318] hover:bg-[#F6EFE6]">
                 For startup builders
               </Button>
             </Link>
             <Link href="/plans">
               <Button
                 variant="outline"
-                className="rounded-full border-2 border-white/40 bg-transparent px-7 py-6 text-base font-medium text-white hover:bg-white hover:text-[#12333A]"
+                className="rounded-full border-2 border-white/40 bg-transparent px-7 py-6 text-base font-medium text-white hover:bg-white hover:text-[#814B28]"
               >
                 See the plans
               </Button>
@@ -462,70 +481,70 @@ export default function HomePage() {
       {/* ---------------------------------------------------------------- */}
       {/* Two ways in — the routes are genuinely different, so say so       */}
       {/* ---------------------------------------------------------------- */}
-      <section className="py-16 md:py-24">
+      <section className="py-16 text-white md:py-24">
         <div className="mx-auto max-w-[1300px] px-5 sm:px-8 lg:px-12">
           <div className="max-w-2xl">
-            <h2 className="font-serif text-fluid-h1 font-normal tracking-tight text-[#12333A]">
+            <h2 className="font-serif text-fluid-h1 font-normal tracking-tight text-white">
               Two ways in
             </h2>
-            <p className="mt-4 text-fluid-body text-[#4A453F]">
+            <p className="mt-4 text-fluid-body text-white/75">
               They are not the same thing, and it matters which one you want.
             </p>
           </div>
 
           <div className="mt-10 grid gap-6 lg:grid-cols-2">
-            <div className="flex flex-col rounded-2xl border border-[#E3D9CC] bg-white/70 p-7">
-              <div className="flex items-center gap-2 text-[#17646E]">
+            <div className="flex flex-col rounded-2xl border border-white/15 bg-white/[0.07] p-7">
+              <div className="flex items-center gap-2 text-white">
                 <Building2 className="h-5 w-5" />
                 <p className="text-xs font-semibold uppercase tracking-[0.14em]">The programme</p>
               </div>
-              <h3 className="mt-4 font-serif text-2xl font-normal text-[#12333A]">
+              <h3 className="mt-4 font-serif text-2xl font-normal text-white">
                 Join a cohort and get placed on a team
               </h3>
-              <p className="mt-3 flex-1 text-[15px] leading-relaxed text-[#4A453F]">
+              <p className="mt-3 flex-1 text-[15px] leading-relaxed text-white/75">
                 Selective. You apply, take an assessment, and if you are accepted you are placed into
                 a cohort with a team, a mentor and a real brief to work against. Structure,
                 mentorship and the partner network come with it.
               </p>
-              <ul className="mt-5 space-y-2 text-sm text-[#4A453F]">
+              <ul className="mt-5 space-y-2 text-sm text-white/75">
                 <li className="flex gap-2">
-                  <Timer className="mt-0.5 h-4 w-4 shrink-0 text-[#17646E]" />
+                  <Timer className="mt-0.5 h-4 w-4 shrink-0 text-white" />
                   Apply, assess, then placed in a cohort
                 </li>
                 <li className="flex gap-2">
-                  <Users className="mt-0.5 h-4 w-4 shrink-0 text-[#17646E]" />
+                  <Users className="mt-0.5 h-4 w-4 shrink-0 text-white" />
                   Team, mentor and brief assigned to you
                 </li>
               </ul>
               <div className="mt-7">
                 <Link href="/apply">
-                  <Button className="rounded-full bg-[#12333A] px-7 py-6 text-base font-medium text-white hover:bg-[#1B4752]">
+                  <Button className="rounded-full bg-[#F0D8C0] px-7 py-6 text-base font-medium text-[#5C3318] hover:bg-[#F6EFE6]">
                     Apply to a cohort
                   </Button>
                 </Link>
               </div>
             </div>
 
-            <div className="flex flex-col rounded-2xl border border-[#E3D9CC] bg-white/70 p-7">
-              <div className="flex items-center gap-2 text-[#A85A1C]">
+            <div className="flex flex-col rounded-2xl border border-white/15 bg-white/[0.07] p-7">
+              <div className="flex items-center gap-2 text-[#F0D8C0]">
                 <Layers className="h-5 w-5" />
                 <p className="text-xs font-semibold uppercase tracking-[0.14em]">Bring your own</p>
               </div>
-              <h3 className="mt-4 font-serif text-2xl font-normal text-[#12333A]">
+              <h3 className="mt-4 font-serif text-2xl font-normal text-white">
                 Run a project or startup you already have
               </h3>
-              <p className="mt-3 flex-1 text-[15px] leading-relaxed text-[#4A453F]">
+              <p className="mt-3 flex-1 text-[15px] leading-relaxed text-white/75">
                 You already have the team and the idea — a capstone project, a side product, an
                 early company. You use the platform and the mentoring to run it properly. Talk to us
                 about setting your team up.
               </p>
-              <ul className="mt-5 space-y-2 text-sm text-[#4A453F]">
+              <ul className="mt-5 space-y-2 text-sm text-white/75">
                 <li className="flex gap-2">
-                  <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-[#A85A1C]" />
+                  <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-[#F0D8C0]" />
                   Your own project, your own team
                 </li>
                 <li className="flex gap-2">
-                  <GraduationCap className="mt-0.5 h-4 w-4 shrink-0 text-[#A85A1C]" />
+                  <GraduationCap className="mt-0.5 h-4 w-4 shrink-0 text-[#F0D8C0]" />
                   Colleges can set this up for a whole batch
                 </li>
               </ul>
@@ -533,7 +552,7 @@ export default function HomePage() {
                 <Link href="/contact">
                   <Button
                     variant="outline"
-                    className="rounded-full border-2 border-[#12333A] px-7 py-6 text-base font-medium text-[#12333A] hover:bg-[#12333A] hover:text-white"
+                    className="rounded-full border-2 border-white/40 px-7 py-6 text-base font-medium text-white hover:bg-white hover:text-[#814B28]"
                   >
                     Talk to us
                   </Button>
@@ -547,13 +566,13 @@ export default function HomePage() {
       {/* ---------------------------------------------------------------- */}
       {/* Shared platform — the thing both tracks actually run on           */}
       {/* ---------------------------------------------------------------- */}
-      <section className="border-t border-[#E3D9CC] bg-[#F6F1E9] py-16 md:py-24">
+      <section className="border-t border-white/15 py-16 text-white md:py-24">
         <div className="mx-auto max-w-[1300px] px-5 sm:px-8 lg:px-12">
           <div className="max-w-2xl">
-            <h2 className="font-serif text-fluid-h1 font-normal tracking-tight text-[#12333A]">
+            <h2 className="font-serif text-fluid-h1 font-normal tracking-tight text-white">
               One platform underneath both
             </h2>
-            <p className="mt-4 text-fluid-body text-[#4A453F]">
+            <p className="mt-4 text-fluid-body text-white/75">
               A semester project and an early company need the same things: work that is owned,
               deadlines that are visible, and proof that something was finished. This is what both
               tracks run on.
@@ -562,12 +581,12 @@ export default function HomePage() {
 
           <div className="mt-11 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
             {sharedPlatform.map((f) => (
-              <div key={f.title} className="border-t border-[#E3D9CC] pt-4">
+              <div key={f.title} className="border-t border-white/15 pt-4">
                 <div className="flex items-center gap-2">
-                  <f.icon className="h-4 w-4 shrink-0 text-[#17646E]" />
-                  <h3 className="font-semibold text-[#12333A]">{f.title}</h3>
+                  <f.icon className="h-4 w-4 shrink-0 text-white" />
+                  <h3 className="font-semibold text-white">{f.title}</h3>
                 </div>
-                <p className="mt-1.5 text-sm leading-relaxed text-[#4A453F]">{f.body}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-white/75">{f.body}</p>
               </div>
             ))}
           </div>
@@ -577,39 +596,44 @@ export default function HomePage() {
       {/* ---------------------------------------------------------------- */}
       {/* Close                                                            */}
       {/* ---------------------------------------------------------------- */}
-      <section className="py-16 md:py-24">
+      <section className="py-16 text-white md:py-24">
         <div className="mx-auto max-w-[1300px] px-5 sm:px-8 lg:px-12">
-          <div className="overflow-hidden rounded-[28px] border border-[#E3D9CC] bg-white/70">
-            <div className="grid items-center gap-8 p-8 md:grid-cols-[1.2fr_0.8fr] md:p-12">
+          <div className="overflow-hidden rounded-[28px] border border-white/15 bg-white/[0.07]">
+            <div className="grid items-stretch gap-8 p-8 md:grid-cols-[1fr_1fr] md:gap-10 md:p-12">
               <div>
-                <h2 className="font-serif text-fluid-h2 font-normal tracking-tight text-[#12333A]">
+                <h2 className="font-serif text-fluid-h2 font-normal tracking-tight text-white">
                   Wherever you are starting, we help you finish.
                 </h2>
-                <p className="mt-4 max-w-xl text-fluid-body text-[#4A453F]">
+                <p className="mt-4 max-w-xl text-fluid-body text-white/75">
                   Start with a project or start with a company. Either way you get owned tasks, real
                   deadlines, a mentor who reviews the work, and a clear record of everything you shipped.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-4">
                   <Link href="/apply">
-                    <Button className="rounded-full bg-[#17646E] px-7 py-6 text-base font-medium text-white hover:bg-[#124F57]">
+                    <Button className="rounded-full bg-[#F0D8C0] px-7 py-6 text-base font-medium text-[#5C3318] hover:bg-[#F6EFE6]">
                       Apply now
                     </Button>
                   </Link>
                   <Link href="/contact">
                     <Button
                       variant="outline"
-                      className="rounded-full border-2 border-[#12333A] px-7 py-6 text-base font-medium text-[#12333A] hover:bg-[#12333A] hover:text-white"
+                      className="rounded-full border-2 border-white/40 px-7 py-6 text-base font-medium text-white hover:bg-white hover:text-[#814B28]"
                     >
                       Talk to us first
                     </Button>
                   </Link>
                 </div>
               </div>
-              <div className="overflow-hidden rounded-2xl border border-[#E3D9CC]">
+              {/* The art carries a caption baked into it, so it is shown whole at
+                  its own 2:1 ratio and centred beside the copy -- cropping it to
+                  fill the column height would cut the caption off. */}
+              <div className="self-center overflow-hidden rounded-2xl border border-white/15">
                 <img
                   src="/landing/home/what-is-image.png"
                   alt="A StartupUniv team at work"
-                  className="h-full w-full object-cover"
+                  className="block h-auto w-full"
+                  width={1600}
+                  height={800}
                   loading="lazy"
                 />
               </div>

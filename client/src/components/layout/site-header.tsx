@@ -6,7 +6,20 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PLANS_PAGE_ENABLED } from "@/lib/plans-flags";
 
-export function SiteHeader() {
+interface SiteHeaderProps {
+  /** "dark" lets the header sit flush on a dark hero, as the home page does. */
+  theme?: "light" | "dark";
+}
+
+export function SiteHeader({ theme = "light" }: SiteHeaderProps) {
+  const isDark = theme === "dark";
+  const navActive = isDark ? "text-[#F0D8C0]" : "text-[#17646E]";
+  const navIdle = isDark
+    ? "text-white hover:text-[#F0D8C0]"
+    : "text-[#12333A] hover:text-[#17646E]";
+  const ctaText = isDark
+    ? "border-[#F0D8C0] text-[#F0D8C0] hover:bg-[#F0D8C0] hover:text-[#5C3318]"
+    : "border-[#17646E] text-[#17646E] hover:bg-[#17646E] hover:text-white";
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [plansDropdownOpen, setPlansDropdownOpen] = useState(false);
@@ -74,12 +87,24 @@ export function SiteHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
+    <header
+      className={cn(
+        "sticky top-0 z-50",
+        isDark ? "bg-[#814B28]" : "bg-white"
+      )}
+    >
       <div className="container mx-auto">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center">
-            <img src="/logo.png" alt="StartupUniv" className="h-6 md:h-7 w-auto" />
+            <img
+              src="/logo.png"
+              alt="StartupUniv"
+              className={cn(
+                "h-6 md:h-7 w-auto",
+                isDark && "box-content rounded-md bg-[#F6F1E9] px-2 py-1"
+              )}
+            />
           </Link>
 
           {/* Desktop Navigation - right aligned */}
@@ -98,10 +123,10 @@ export function SiteHeader() {
                         href={item.href}
                         onClick={() => setPlansDropdownOpen(false)}
                         className={cn(
-                          "flex items-center gap-1 text-sm font-medium transition-colors cursor-pointer",
+                          "flex items-center gap-1 text-[15px] font-medium transition-colors cursor-pointer",
                           isActive(item.href)
-                            ? "text-[#17646E] border-b-2 border-[#17646E] pb-1"
-                            : "text-[#12333A] hover:text-[#17646E]"
+                            ? navActive
+                            : navIdle
                         )}
                         aria-haspopup="menu"
                         aria-expanded={plansDropdownOpen}
@@ -197,10 +222,10 @@ export function SiteHeader() {
                     <Link href={item.href}>
                       <span
                         className={cn(
-                          "text-sm font-medium transition-colors cursor-pointer",
+                          "text-[15px] font-medium transition-colors cursor-pointer",
                           isActive(item.href)
-                            ? "text-[#17646E] border-b-2 border-[#17646E] pb-1"
-                            : "text-[#12333A] hover:text-[#17646E]"
+                            ? navActive
+                            : navIdle
                         )}
                       >
                         {item.label}
@@ -210,10 +235,14 @@ export function SiteHeader() {
                 </div>
               ))}
             </nav>
-            <Link href="/login">
-              <Button className="bg-[#12333A] hover:bg-[#1B4752] text-white px-6 py-2 rounded-md text-sm font-medium">
-                Login
-              </Button>
+            <Link
+              href="/login"
+              className={cn(
+                "rounded-full border px-6 py-2 text-[15px] font-semibold uppercase tracking-wide transition-colors",
+                ctaText
+              )}
+            >
+              Login
             </Link>
           </div>
 
@@ -221,7 +250,11 @@ export function SiteHeader() {
           <div className="flex lg:hidden">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-gray-800">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={isDark ? "text-white hover:text-[#F0D8C0]" : "text-gray-800"}
+                >
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>

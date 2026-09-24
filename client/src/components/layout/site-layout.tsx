@@ -7,20 +7,40 @@ interface SiteLayoutProps {
   hideCTA?: boolean;
   className?: string;
   mainClassName?: string;
+  /** Pass "dark" when the page opens on a dark hero. */
+  headerTheme?: "light" | "dark";
+  /**
+   * Replaces the default page ground. Pass one flat colour when a page should
+   * read as a single surface — the default gradient ends warmer than it starts,
+   * which shows up as banding between sections.
+   */
+  surfaceClassName?: string;
 }
 
-export function SiteLayout({ children, hideCTA = false, className, mainClassName }: SiteLayoutProps) {
+export function SiteLayout({
+  children,
+  hideCTA = false,
+  className,
+  mainClassName,
+  headerTheme = "light",
+  surfaceClassName,
+}: SiteLayoutProps) {
+  const surface =
+    surfaceClassName ?? "bg-gradient-to-b from-[#FAF7F3] via-[#FEFBF8] to-[#F5E6D3]";
+
   return (
     <div
       className={cn(
-        "flex min-h-screen flex-col bg-gradient-to-b from-[#FAF7F3] via-[#FEFBF8] to-[#F5E6D3] w-full max-w-full",
+        "flex min-h-screen flex-col w-full max-w-full",
+        surface,
         className
       )}
     >
-      <SiteHeader />
+      <SiteHeader theme={headerTheme} />
       <main
         className={cn(
-          "flex-1 bg-gradient-to-b from-[#FAF7F3] via-[#FEFBF8] to-[#F5E6D3] overflow-x-hidden w-full max-w-full",
+          "flex-1 overflow-x-hidden w-full max-w-full",
+          surface,
           mainClassName
         )}
       >

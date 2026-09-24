@@ -1,63 +1,137 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SiteLayout } from "@/components/layout/site-layout";
-import { TimelineContent } from "@/components/ui/timeline-animation";
+import { HeroChips, HeroFacts, PartnerMarquee, VenturesBand } from "@/components/plans/plans-shared";
 import { PLANS_PAGE_ENABLED } from "@/lib/plans-flags";
-import {
-  CheckCircle,
-  ShieldCheck,
-  ChevronDown,
-} from "lucide-react";
+import { ArrowRight, Compass, GraduationCap, Handshake, Rocket, ShieldCheck } from "lucide-react";
+
+/**
+ * Plans runs on the same single brown ground as the home and about pages,
+ * #814B28, from the header down to the closing card; only the footer keeps its
+ * green. See plans-shared.tsx for the full colour notes.
+ *
+ * The scenario tabs used to carry three different pastel grounds. They are now
+ * one surface with the rest of the page, told apart by the tab itself rather
+ * than by colour.
+ */
 
 const founderFeatures = [
-  "Lead the startup as the Primary Founder",
-  "Get mentorship to refine ideas & execution",
-  "Team support to build product, ops & marketing",
-  "Guidance on business model, go-to-market & investors",
-  "Prototype, test & validate before full-time commitment",
-  "Network with founders, mentors & industry experts",
-  "Access pre-incubator resources and mentorship (Passionate)",
-  "Official Founder recognition in the startup ecosystem",
-  "The plan duration is 4 months",
-
+  "Lead the startup as the primary Founder",
+  "Mentorship that refines both the idea and the execution",
+  "A team behind you on product, operations and marketing",
+  "Guidance on business model, go-to-market and investors",
+  "Prototype, test and validate before you commit full-time",
+  "Access to nine partner organisations across academia and industry",
+  "Officially recognised as a Founder in the StartupUniv ecosystem",
+  "The plan runs for four months",
 ];
 
 const cofounderFeatures = [
-  "Join as Co-Founder with shared ownership",
-  "Mentorship to refine ideas & execution",
-  "Team support to build product, ops & marketing",
-  "Guidance on business model, go-to-market & investors",
-  "Prototype, test & validate before full-class",
-  "Network with founders, mentors & industry experts",
-  "Access pre-incubator resources and mentorship",
-  "Official Co-Founder recognition in the startup ecosystem",
-  "The plan duration is 4 months",
+  "Join a founding team as a full partner with shared ownership",
+  "Own one core function end to end — tech, growth, operations or delivery",
+  "A learner team under you and a mentor above you",
+  "Guidance on business model, go-to-market and investors",
+  "Join pre-vetted ideas that already have early traction",
+  "Access to nine partner organisations across academia and industry",
+  "Officially recognised as a Co-founder in the StartupUniv ecosystem",
+  "The plan runs for four months",
 ];
 
-const internFeatures = [
-  "Hands-on experience in real startup operations",
-  "Mentorship from experienced founders",
-  "Learn product, marketing, operations & business strategy",
-  "Work on live products or functional prototypes",
-  "Exposure to startup culture and decision-making",
-  "Network with founders and core team members",
-  "Recognition through certificate or equity",
-  "Flexible involvement based on interest and role",
-  "The plan duration is 4 months",
+const learnerFeatures = [
+  "Hands-on work inside a real startup, not a simulation",
+  "Mentorship direct from the founders you sit beside",
+  "Learn product, marketing, operations and business strategy by doing them",
+  "Work on live products with real users",
+  "Sit inside the culture and the decision-making",
+  "Network with founders, mentors and every cohort since 2025",
+  "Recognition through a certificate, or through equity",
+  "The plan runs for four months",
+];
+
+type Plan = {
+  id: string;
+  name: string;
+  audience: string;
+  price: string;
+  terms: string;
+  icon: typeof ShieldCheck;
+  features: string[];
+  applyHref: string;
+  detailsHref: string;
+};
+
+const plans: Plan[] = [
+  {
+    id: "founder",
+    name: "Founder",
+    audience: "You have the idea and want to lead it",
+    price: "₹5,00,000",
+    terms: "40% equity share · team support",
+    icon: Rocket,
+    features: founderFeatures,
+    applyHref: "/apply?plan=founder",
+    detailsHref: "/plans/founder",
+  },
+  {
+    id: "cofounder",
+    name: "Co-founder",
+    audience: "You want a real stake in someone else's",
+    price: "₹3,00,000",
+    terms: "20% equity share · team support",
+    icon: Handshake,
+    features: cofounderFeatures,
+    applyHref: "/apply?plan=cofounder",
+    detailsHref: "/plans/cofounder",
+  },
+  {
+    id: "intern",
+    name: "Learner",
+    audience: "You want to learn how a company is actually run",
+    price: "₹1,00,000",
+    terms: "Team support · certificate, or ₹1,50,000 with 5% equity",
+    icon: GraduationCap,
+    features: learnerFeatures,
+    applyHref: "/apply?plan=learner",
+    detailsHref: "/plans/intern",
+  },
+];
+
+const scenarios = [
+  {
+    value: "scenario1",
+    tab: "Scenario 1",
+    title: "2 Founders + 8 Learners + 1 Mentor",
+    bullets: ["Two Founders, each holding 40% equity, totalling 80% between them."],
+  },
+  {
+    value: "scenario2",
+    tab: "Scenario 2",
+    title: "1 Founder + 2 Co-founders + 7 Learners + 1 Mentor",
+    bullets: [
+      "Founder: owns 40% of the company.",
+      "Co-founders: two of them, each owning 20%, so 40% together.",
+      "Learners, mentor and StartupUniv: 20% between them.",
+    ],
+  },
+  {
+    value: "scenario3",
+    tab: "Scenario 3",
+    title: "1 Founder + 1 Co-founder + 4 Premium Learners + 1 Mentor",
+    bullets: [
+      "Founder: owns 40% of the startup.",
+      "Co-founder: owns 20%.",
+      "Premium Learners: four of them at 5% each, so 20% together.",
+      "Mentor and StartupUniv: the remaining 20%.",
+    ],
+    footnote:
+      "This is how ownership is shared between the primary Founder, the Co-founder, the Learners and the team supporting them.",
+  },
 ];
 
 export default function PlansPage() {
-  const [activeCard, setActiveCard] = useState<string | null>(null);
-  const [internPlanType, setInternPlanType] = useState<"equity" | "experience">("equity");
-  const [heroCtaHover, setHeroCtaHover] = useState<"apply" | "explore" | null>(null);
-  const plansRef = useRef<HTMLElement>(null);
-
-  // Use Vite base URL so this works even when the app is hosted under a sub-path.
-  const plansHeroImageSrc = `${import.meta.env.BASE_URL}plans/plans-main.png`;
+  const [hoveredPlan, setHoveredPlan] = useState<string | null>(null);
 
   useEffect(() => {
     const scrollToHash = () => {
@@ -75,51 +149,34 @@ export default function PlansPage() {
     return () => window.removeEventListener("hashchange", scrollToHash);
   }, []);
 
-  const revealVariants = {
-    visible: (i: number) => ({
-      y: 0,
-      opacity: 1,
-      filter: "blur(0px)",
-      transition: {
-        delay: i * 0.2,
-        duration: 0.5,
-      },
-    }),
-    hidden: {
-      filter: "blur(10px)",
-      y: -20,
-      opacity: 0,
-    },
-  };
-
   if (!PLANS_PAGE_ENABLED) {
     return (
-      <SiteLayout>
-        <section className="min-h-[60vh] flex items-center justify-center bg-white py-20">
-          <div className="max-w-xl mx-auto px-6 text-center">
-            <h1 className="text-fluid-hero font-bold text-gray-900 mb-4">
-              Plans &amp; Pricing — Coming Soon
+      <SiteLayout hideCTA headerTheme="dark" surfaceClassName="bg-[#814B28]">
+        <section className="flex min-h-[60vh] items-center justify-center py-20 text-white">
+          <div className="mx-auto max-w-xl px-6 text-center">
+            <h1 className="text-fluid-h1 font-light tracking-tight text-white">
+              Plans and pricing open <span className="font-semibold">shortly.</span>
             </h1>
-            <p className="text-base md:text-lg text-gray-600 mb-8">
-              We're finalising pricing for both routes — joining a cohort, and bringing your own
-              project or company. In the meantime, see how each one works, or talk to us directly.
+            <p className="mt-4 text-fluid-h3 font-medium text-[#F0D8C0]">
+              StartupUniv was developed to effectively bridge these gaps.
             </p>
-            <div className="flex flex-wrap justify-center gap-4">
+            <p className="mt-4 text-fluid-body text-white/80">
+              We started in 2025, have worked with more than 20,000 students since, and are
+              finalising pricing for both routes — joining a cohort, and bringing your own project or
+              company. In the meantime, see how each one works, or talk to us directly.
+            </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-4">
               <Link href="/">
-                <Button
-                  size="lg"
-                  className="bg-[#17646E] hover:bg-[#1e3a8ae8] text-white px-6 py-4 text-base font-semibold rounded-full"
-                >
-                  Back to Home
+                <Button className="rounded-full bg-[#F0D8C0] px-7 py-6 text-base font-medium text-[#5C3318] hover:bg-[#F6EFE6]">
+                  Back to home
                 </Button>
               </Link>
               <Link href="/program">
                 <Button
-                  size="lg"
                   variant="outline"
-                  className="px-6 py-4 text-base font-semibold rounded-full"
+                  className="rounded-full border-2 border-white/40 bg-transparent px-7 py-6 text-base font-medium text-white hover:bg-white hover:text-[#814B28]"
                 >
-                  Explore Programs
+                  Explore programmes
                 </Button>
               </Link>
             </div>
@@ -130,467 +187,294 @@ export default function PlansPage() {
   }
 
   return (
-    <SiteLayout>
-      {/* Hero */}
-      <section className="bg-white py-10 md:py-12" ref={plansRef}>
-        <div className="container mx-auto">
-          <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-100">
-            <div className="grid lg:grid-cols-2 items-stretch">
-              {/* Left Column - Content (Blue) */}
-              <div className="bg-[#17646E] px-8 py-12 md:px-12 md:py-16 lg:h-[600px]">
-                <div className="space-y-6 max-w-xl">
-                  <TimelineContent
-                    animationNum={0}
-                    timelineRef={plansRef}
-                    customVariants={revealVariants}
-                  >
-                    {/* <Badge className="bg-white/10 text-white border border-white/20 px-4 py-2 text-sm">
-                      Plans & Pricing
-                    </Badge> */}
-                  </TimelineContent>
+    <SiteLayout hideCTA headerTheme="dark" surfaceClassName="bg-[#814B28]">
+      {/* ---------------------------------------------------------------- */}
+      {/* Hero — the claim left, the work right                            */}
+      {/* ---------------------------------------------------------------- */}
+      <section className="pb-14 pt-12 text-white md:pb-20 md:pt-16">
+        <div className="mx-auto max-w-[1300px] px-5 sm:px-8 lg:px-12">
+          <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-14">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#F0D8C0]/35 bg-[#F0D8C0]/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#F0D8C0]">
+                <Compass className="h-3.5 w-3.5" />
+                Plans and pricing
+              </span>
 
-                  <TimelineContent
-                    animationNum={1}
-                    timelineRef={plansRef}
-                    customVariants={revealVariants}
-                  >
-                    <h1 className="text-fluid-hero font-bold text-white">
-                      Plans & Pricing
-                    </h1>
-                  </TimelineContent>
+              <h1 className="mt-6 text-fluid-h1 font-light tracking-tight text-white">
+                Three ways in.{" "}
+                <span className="font-semibold">One company at the end of all of them.</span>
+              </h1>
 
-                  <TimelineContent
-                    animationNum={2}
-                    timelineRef={plansRef}
-                    customVariants={revealVariants}
-                  >
-                    <p className="text-base md:text-lg text-white/85 leading-relaxed">
-                      Select the plan that best fits your entrepreneurial journey. Founder and Co-Founder plans include premium features, while Intern plans offer Basic and Premium tiers.
-                    </p>
-                  </TimelineContent>
+              <p className="mt-4 text-fluid-h3 font-medium text-[#F0D8C0]">
+                StartupUniv was developed to effectively bridge these gaps.
+              </p>
 
-                  <TimelineContent
-                    animationNum={3}
-                    timelineRef={plansRef}
-                    customVariants={revealVariants}
-                  >
-                    <div className="flex flex-wrap gap-4 pt-1">
-                      <Link href="/apply?plan=founder">
-                        <Button
-                          size="lg"
-                          onMouseEnter={() => setHeroCtaHover("apply")}
-                          onMouseLeave={() => setHeroCtaHover(null)}
-                          className={
-                            heroCtaHover === "explore"
-                              ? "border-2 border-white text-white px-6 py-4 text-base font-semibold rounded-full bg-transparent transition-all"
-                              : "bg-white text-[#17646E] px-6 py-4 text-base font-semibold rounded-full transition-all hover:bg-white/90"
-                          }
-                        >
-                          Apply Now
-                        </Button>
-                      </Link>
-                      <Link href="/program">
-                        <Button
-                          size="lg"
-                          onMouseEnter={() => setHeroCtaHover("explore")}
-                          onMouseLeave={() => setHeroCtaHover(null)}
-                          className={
-                            heroCtaHover === "explore"
-                              ? "bg-white text-[#17646E] px-6 py-4 text-base font-semibold rounded-full transition-all border-2 border-white"
-                              : "border-2 border-white text-white px-6 py-4 text-base font-semibold rounded-full bg-transparent transition-all hover:bg-white hover:text-[#17646E]"
-                          }
-                        >
-                          Explore Programs
-                        </Button>
-                      </Link>
-                    </div>
+              <p className="mt-4 max-w-xl text-fluid-body text-white/80">
+                We started in 2025 and have since worked with more than 20,000 students, partnering
+                with VTU, Jain University, NSDC, AWS, IBM, Cisco, Red Hat and NASSCOM. Over 40
+                startups have been started here. Pick the seat you want on the next one.
+              </p>
 
-                    <div className="mt-8 bg-white/10 rounded-xl p-5 border border-white/20 shadow-sm backdrop-blur-sm">
-                      <h4 className="text-white font-semibold mb-2">Build Together. Grow Faster.</h4>
-                      <ul className="text-white/85 text-sm space-y-1.5">
-                        <li className="flex items-start gap-2">
-                          <span className="text-white font-bold mt-0.5">✓</span>
-                          Execute real projects, not just theory
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-white font-bold mt-0.5">✓</span>
-                          Gain hands-on experience solving real-world challenges
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-white font-bold mt-0.5">✓</span>
-                          Build alongside a structured team of peers
-                        </li>
-                      </ul>
-                    </div>
-                  </TimelineContent>
-                </div>
+              <HeroFacts />
+              <HeroChips chips={["Owned tasks", "Daily standups", "Mentor reviews", "Evidence of the work"]} />
+
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <a
+                  href="#choose"
+                  className="group inline-flex items-center gap-3 rounded-xl bg-[#F0D8C0] px-6 py-4 text-sm font-semibold uppercase tracking-[0.08em] text-[#5C3318] transition-colors hover:bg-[#F6EFE6]"
+                >
+                  Compare the plans
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </a>
+                <Link
+                  href="/program"
+                  className="group inline-flex items-center gap-3 rounded-xl border border-[#F0D8C0]/45 px-6 py-4 text-sm font-semibold uppercase tracking-[0.08em] text-[#F0D8C0] transition-colors hover:border-[#F0D8C0] hover:bg-[#F0D8C0] hover:text-[#5C3318]"
+                >
+                  Explore programmes
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </div>
+            </div>
+
+            {/* The photograph sits on the same light plate the home hero uses,
+                so every page opens with the same object. */}
+            <div className="space-y-6">
+              <div className="overflow-hidden rounded-[20px] border border-[#F0D8C0]/20 bg-[#F6F1E9] shadow-2xl">
+                <img
+                  src="/plans/plans-main.png"
+                  alt="A cohort working through a sprint together"
+                  className="block h-auto w-full"
+                  loading="eager"
+                  decoding="async"
+                />
               </div>
 
-              {/* Right Column - Image */}
-              <TimelineContent
-                animationNum={4}
-                timelineRef={plansRef}
-                customVariants={revealVariants}
+              <div className="rounded-2xl border-t-2 border-[#F0D8C0]/50 bg-white/[0.07] p-6">
+                <h2 className="font-semibold text-white">Build together. Grow faster.</h2>
+                <ul className="mt-3 space-y-2 text-[15px] leading-relaxed text-white/75">
+                  {[
+                    "Execute real projects, not theory",
+                    "Solve real-world briefs set by our partner organisations",
+                    "Build alongside a structured team, with a mentor reviewing the work",
+                  ].map((point) => (
+                    <li key={point} className="flex gap-2">
+                      <span className="mt-0.5 shrink-0 font-bold text-[#F0D8C0]">✓</span>
+                      {point}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <PartnerMarquee />
+
+      {/* ---------------------------------------------------------------- */}
+      {/* The three plans                                                  */}
+      {/* ---------------------------------------------------------------- */}
+      <section id="choose" className="scroll-mt-20 py-16 text-white md:py-24">
+        <div className="mx-auto max-w-[1300px] px-5 sm:px-8 lg:px-12">
+          <div className="max-w-2xl">
+            <h2 className="font-serif text-fluid-h1 font-normal tracking-tight text-white">
+              Choose the seat, not the price
+            </h2>
+            <p className="mt-4 text-fluid-body text-white/75">
+              All three sit on the same team, run the same sprints and get the same review. What
+              changes is what you own, and how much of the company you own at the end.
+            </p>
+          </div>
+
+          <div className="mt-11 grid gap-6 lg:grid-cols-3">
+            {plans.map((plan) => (
+              <div
+                key={plan.id}
+                id={plan.id}
+                onMouseEnter={() => setHoveredPlan(plan.id)}
+                onMouseLeave={() => setHoveredPlan(null)}
+                className={`flex scroll-mt-28 flex-col rounded-2xl border-t-2 border-[#F0D8C0]/50 p-7 transition-colors ${
+                  hoveredPlan === plan.id ? "bg-white/[0.12]" : "bg-white/[0.07]"
+                }`}
               >
-                <div className="relative min-h-[320px] h-[420px] sm:h-[520px] lg:h-[600px]">
-                  <img
-                    src={plansHeroImageSrc}
-                    alt="Team discussion"
-                    className="w-full h-full object-cover"
-                    fetchPriority="high"
-                    loading="eager"
-                    decoding="async"
-                    onError={(e) => {
-                      const img = e.currentTarget;
-
-                      // First retry: absolute path (covers some reverse-proxy setups).
-                      if (!img.dataset.fallbackTried) {
-                        img.dataset.fallbackTried = "1";
-                        img.src = "/plans/plans-main.png";
-                        return;
-                      }
-
-                      img.src =
-                        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='800'%3E%3Crect width='1200' height='800' fill='%23E5E7EB'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='40' fill='%236B7280'%3ETeam Collaboration%3C/text%3E%3C/svg%3E";
-                    }}
-                  />
+                <div className="flex items-center gap-3">
+                  <plan.icon className="h-6 w-6 shrink-0 text-[#F0D8C0]" />
+                  <h3 className="font-serif text-3xl font-normal text-white">{plan.name}</h3>
                 </div>
-              </TimelineContent>
-            </div>
-          </div>
-        </div>
-      </section>
+                <p className="mt-2 text-sm leading-relaxed text-white/60">{plan.audience}</p>
 
-      {/* Plans */}
-      <section className="py-16 md:py-20 bg-white">
-        <div className="container mx-auto">
-          {/* Section Title */}
-          <div className="text mb-12 text-center">
-            <h2 className="text-fluid-h2 font-bold text-gray-900 mb-4">
-              "Choose Your Plan"
-            </h2>
-          </div>
-          
-          <div className="grid gap-10 lg:grid-cols-2 max-w-[950px] mx-auto">
-            {/* FOUNDER */}
-            <TimelineContent
-              animationNum={3}
-              timelineRef={plansRef}
-              customVariants={revealVariants}
-            >
-            <div id="founder" className="scroll-mt-28 group transition-all duration-300 cursor-pointer rounded-2xl hover:bg-gray-300 h-full" onClick={() => setActiveCard(activeCard === "founder" ? null : "founder")}>
-            <Card 
-              className="border-2 border-gray-200 rounded-2xl bg-transparent shadow-md group-hover:shadow-xl overflow-hidden flex flex-col h-full"
-            >
-              <CardHeader className="space-y-4 pb-8 px-8 pt-8">
-                <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 bg-[#17646E] rounded-xl flex items-center justify-center">
-                    <ShieldCheck className="w-10 h-10 text-[#FFD700]" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-3xl font-bold text-gray-900">FOUNDER Plan</CardTitle>
-                    <CardDescription className="text-base text-gray-600 mt-1">
-                      Aspiring startup founders
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="px-8 pb-8 flex flex-col flex-1">
-                <div className="flex flex-col flex-1 gap-6">
-                  <div className="text-left pb-6 border-b-2 border-gray-200">
-                    <div className="text-4xl font-bold text-gray-900 mb-2">₹5,00,000 <span className="text-lg font-normal text-gray-600">/</span></div>
-                    <div className="text-base font-semibold text-gray-700 mb-1">40% Equity Share / Team Support</div>
-                  </div>
-                  <ul className="space-y-3 bg-white p-4 rounded-lg">
-                    {founderFeatures.map((feature, index) => (
-                      <li key={index} className="flex items-start gap-3">
-                        <CheckCircle className="h-5 w-5 text-[#17646E] shrink-0 mt-0.5" />
-                        <span className="text-sm text-gray-700 leading-relaxed">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-auto pt-2">
-                    <Link href="/apply?plan=founder">
-                      <Button className="w-full bg-[#17646E] hover:bg-[#1e3a8ae8] text-white py-4 text-base font-semibold rounded-full">
-                        Apply Now
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            </div>
-            </TimelineContent>
-
-            {/* Co-Founder */}
-            <TimelineContent
-              animationNum={4}
-              timelineRef={plansRef}
-              customVariants={revealVariants}
-            >
-            <div id="cofounder" className="scroll-mt-28 group transition-all duration-300 cursor-pointer rounded-2xl hover:bg-gray-300 h-full" onClick={() => setActiveCard(activeCard === "cofounder" ? null : "cofounder")}>
-            <Card 
-              className="border-2 border-gray-200 rounded-2xl bg-transparent shadow-md group-hover:shadow-xl overflow-hidden flex flex-col h-full"
-            >
-              <CardHeader className="space-y-4 pb-8 px-8 pt-8">
-                <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 bg-[#17646E] rounded-xl flex items-center justify-center">
-                    <ShieldCheck className="w-10 h-10 text-[#FFD700]" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-3xl font-bold text-gray-900">Co-Founder Plan</CardTitle>
-                    <CardDescription className="text-base text-gray-600 mt-1">
-                      Early-stage active contributors
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="px-8 pb-8 flex flex-col flex-1">
-                <div className="flex flex-col flex-1 gap-6">
-                  <div className="text-left pb-6 border-b-2 border-gray-200">
-                    <div className="text-4xl font-bold text-gray-900 mb-2">₹3,00,000 <span className="text-lg font-normal text-gray-600">/</span></div>
-                    <div className="text-base font-semibold text-gray-700 mb-1">20% Equity Share / Team Support</div>
-                  </div>
-                  <ul className="space-y-3 bg-white p-4 rounded-lg">
-                    {cofounderFeatures.map((feature, index) => (
-                      <li key={index} className="flex items-start gap-3">
-                        <CheckCircle className="h-5 w-5 text-[#17646E] shrink-0 mt-0.5" />
-                        <span className="text-sm text-gray-700 leading-relaxed">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-auto pt-2">
-                    <Link href="/apply?plan=cofounder">
-                      <Button className="w-full bg-[#17646E] hover:bg-[#1e3a8ae8] text-white py-4 text-base font-semibold rounded-full">
-                        Apply Now
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            </div>
-            </TimelineContent>
-
-            {/* Intern - temporarily hidden */}
-            {/* <TimelineContent
-              animationNum={5}
-              timelineRef={plansRef}
-              customVariants={revealVariants}
-            >
-            <div id="intern" className="scroll-mt-28 group transition-all duration-300 cursor-pointer rounded-2xl hover:bg-gray-300 h-full" onClick={() => setActiveCard(activeCard === "intern" ? null : "intern")}>
-            <Card
-              className="border-2 border-gray-200 rounded-2xl bg-transparent shadow-md group-hover:shadow-xl overflow-hidden flex flex-col h-full"
-            >
-              <CardHeader className="space-y-4 pb-8 px-8 pt-8">
-                <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 bg-[#17646E] rounded-xl flex items-center justify-center">
-                    <ShieldCheck className="w-10 h-10 text-[#FFD700]" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-3xl font-bold text-gray-900">Intern Plan</CardTitle>
-                    <CardDescription className="text-base text-gray-600 mt-1">
-                      Hands-on startup experience
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="px-8 pb-8 flex flex-col flex-1">
-                <div className="flex flex-col flex-1 gap-6">
-                  <div className="text-left pb-6 border-b-2 border-gray-200">
-                    {internPlanType === "equity" ? (
-                      <>
-                        <div className="flex items-end gap-2 mb-2 flex-wrap">
-                          <span className="text-4xl font-bold text-gray-900">₹1,50,000</span>
-                          <span className="text-lg font-normal text-gray-600 mb-1">/</span>
-                          <span className="text-base font-semibold text-gray-700 mb-1">5% Equity Share</span>
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-base font-semibold text-gray-700">Team Support</span>
-                          <span className="text-gray-600">/</span>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setInternPlanType("experience"); }}
-                            className="flex items-center gap-1 bg-[#eef0ff] text-[#17646E] px-3 py-1 rounded text-sm font-medium hover:bg-[#dde0ff] transition-colors"
-                          >
-                            With Equity <ChevronDown className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex items-end gap-2 mb-2">
-                          <span className="text-4xl font-bold text-gray-900">₹1,00,000</span>
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-base font-semibold text-gray-700">Team Support</span>
-                          <span className="text-gray-600">/</span>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setInternPlanType("equity"); }}
-                            className="flex items-center gap-1 bg-[#eef0ff] text-[#17646E] px-3 py-1 rounded text-sm font-medium hover:bg-[#dde0ff] transition-colors"
-                          >
-                            Experience <ChevronDown className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  <ul className="space-y-3 bg-white p-4 rounded-lg">
-                    {internFeatures.map((feature, index) => (
-                      <li key={index} className="flex items-start gap-3">
-                        <CheckCircle className="h-5 w-5 text-[#17646E] shrink-0 mt-0.5" />
-                        <span className="text-sm text-gray-700 leading-relaxed">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-auto pt-2">
-                    <Link href={`/apply?plan=learner&tier=${internPlanType === "equity" ? "premium" : "basic"}`}>
-                      <Button className="w-full bg-[#17646E] hover:bg-[#1e3a8ae8] text-white py-4 text-base font-semibold rounded-full">
-                        Apply Now
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            </div>
-            </TimelineContent> */}
-          </div>
-        </div>
-      </section>
-
-      {/* Equity Distribution Scenarios */}
-      <section className="py-16 md:py-20 bg-white ">
-        <div className="container mx-auto">
-          <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold md:text-4xl text-gray-900 mb-4">
-              Team Equity Distribution Scenarios
-            </h2>
-          </div>
-
-          <div className="max-w-6xl mx-auto">
-            <Tabs defaultValue="scenario1" className="w-full">
-              <TabsList className="flex w-full h-auto p-0 bg-transparent gap-4">
-                <TabsTrigger 
-                  value="scenario1" 
-                  className="flex-1 data-[state=active]:bg-[#17646E] data-[state=active]:text-white data-[state=active]:border-0 data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-900 data-[state=inactive]:border-r-2 data-[state=inactive]:border-black text-sm md:text-base py-3 rounded-none"
-                >
-                  Scenario 1
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="scenario2" 
-                  className="flex-1 data-[state=active]:bg-[#17646E] data-[state=active]:text-white data-[state=active]:border-0 data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-900 data-[state=inactive]:border-r-2 data-[state=inactive]:border-black text-sm md:text-base py-3 rounded-none"
-                >
-                  Scenario 2
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="scenario3" 
-                  className="flex-1 data-[state=active]:bg-[#17646E] data-[state=active]:text-white data-[state=active]:border-0 data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-900 text-sm md:text-base py-3 rounded-none"
-                >
-                  Scenario 3
-                </TabsTrigger>
-              </TabsList>
-
-              {/* Scenario 1 */}
-              <TabsContent value="scenario1" className="mt-5">
-                <div className="bg-[#FFDF8B] px-6 md:px-12 pt-12 md:pt-14 pb-12 md:pb-14">
-                  <div className="flex flex-col gap-8 items-start max-w-5xl">
-                    <h3 className="font-serif font-light text-[#12333A] text-4xl md:text-[70px] leading-[1.02] tracking-[-0.04em]">
-                      2 Founders + 8 Interns + 1 Mentor
-                    </h3>
-                    <p className="text-[#12333A] text-base md:text-[21px] leading-relaxed">
-                      “Two founders, each holding 40% equity, totaling 80%.”
-                    </p>
-                  </div>
-
-                  <div className="mt-10 md:mt-14">
-                    <div className="h-px w-full bg-[#12333A]" />
-                    <p className="pt-3 text-[#12333A] text-sm md:text-[18px] leading-relaxed">
-                      The StartupUniv
-                    </p>
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* Scenario 2 */}
-              <TabsContent value="scenario2" className="mt-6">
-                <div className="bg-[#D7FFE6] px-6 md:px-12 pt-12 md:pt-14 pb-12 md:pb-14">
-                  <div className="flex flex-col gap-8 items-start max-w-5xl">
-                    <h3 className="font-serif font-light text-[#12333A] text-4xl md:text-[70px] leading-[1.02] tracking-[-0.04em]">
-                      1 Founder + 2 Co-founders + 7 Interns + 1 Mentor
-                    </h3>
-                    <ul className="list-disc pl-5 text-[#12333A] text-sm md:text-[18px] leading-relaxed space-y-2">
-                      <li>Founder. Owns 40% of the company.</li>
-                      <li>Co-founders: There are two of them, and each owns 20%, so together they have 40%.</li>
-                      <li>Intern + Mentor + StartupUniv: Together, they own 20% of the company.</li>
-                    </ul>
-                  </div>
-
-                  <div className="mt-10 md:mt-14">
-                    <div className="h-px w-full bg-[#12333A]" />
-                    <p className="pt-3 text-[#12333A] text-sm md:text-[18px] leading-relaxed">
-                      The StartupUniv
-                    </p>
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* Scenario 3 */}
-              <TabsContent value="scenario3" className="mt-6">
-                <div className="bg-[#F7B6AD] px-6 md:px-12 pt-12 md:pt-14 pb-12 md:pb-14">
-                  <div className="flex flex-col gap-8 items-start max-w-5xl">
-                    <h3 className="font-serif font-light text-[#12333A] text-4xl md:text-[70px] leading-[1.02] tracking-[-0.04em]">
-                      1 Founder + 1 Co-founder + 4 Premium Interns + 1 Mentor
-                    </h3>
-                    <ul className="list-disc pl-5 text-[#12333A] text-sm md:text-[18px] leading-relaxed space-y-2">
-                      <li>Founder. Owns 40% of the startup.</li>
-                      <li>Co-founder. Owns 20%.</li>
-                      <li>Premium Interns: There are 4 interns, and each gets 5%, so together they have 20%.</li>
-                      <li>Mentor + StartupUniv: Together, they get the remaining 20%.</li>
-                    </ul>
-
-                    <p className="text-[#12333A] text-sm md:text-[18px] leading-relaxed max-w-4xl">
-                      This shows how ownership of the company is shared among the main founder, co-founder, interns, and the supporting team.
-                    </p>
-                  </div>
-
-                  <div className="mt-10 md:mt-14">
-                    <div className="h-px w-full bg-[#12333A]" />
-                    <p className="pt-3 text-[#12333A] text-sm md:text-[18px] leading-relaxed">
-                      The StartupUniv
-                    </p>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-            {/* Team Application Section */}
-      <section className="py-8 ">
-        <div className="  px-2">
-          <Link href="/plans/team-application">
-            <Button className="bg-[#17646E]  text-white px-6 py-3 text-sm font-semibold rounded-full">
-              Team Application
-            </Button>
-          </Link>
-        </div>
-      </section>
-
-            {/* Equity Issuance Terms */}
-            <div className="mt-10">
-              <Card className="bg-gray-200 border-2  shadow-md">
-                <CardContent className="p-6">
-                  <h3 className="font-bold text-gray-900 mb-3 text-lg">Equity Issuance Terms</h3>
-                  <p className="text-sm md:text-base text-gray-700 leading-relaxed">
-                    Equity will be issued upon successful completion of the program and continued participation in the project. This ensures commitment and aligns interests for long-term success.
+                <div className="mt-6 border-t border-white/15 pt-5">
+                  <p className="font-serif text-4xl font-normal text-[#F0D8C0] lining-nums">
+                    {plan.price}
                   </p>
-                </CardContent>
-              </Card>
+                  <p className="mt-2 text-sm font-semibold text-white">{plan.terms}</p>
+                </div>
+
+                <ul className="mt-6 flex-1 space-y-2.5">
+                  {plan.features.map((feature) => (
+                    <li
+                      key={feature}
+                      className="flex gap-2.5 text-[15px] leading-relaxed text-white/75"
+                    >
+                      <span className="mt-0.5 shrink-0 font-bold text-[#F0D8C0]">✓</span>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-7 flex flex-col gap-3">
+                  <Link href={plan.applyHref}>
+                    <Button className="w-full rounded-full bg-[#F0D8C0] px-7 py-6 text-base font-medium text-[#5C3318] hover:bg-[#F6EFE6]">
+                      Apply as {plan.name}
+                    </Button>
+                  </Link>
+                  <Link
+                    href={plan.detailsHref}
+                    className="group inline-flex items-center justify-center gap-2 text-sm font-semibold uppercase tracking-[0.08em] text-[#F0D8C0] transition-colors hover:text-white"
+                  >
+                    See the full plan
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ---------------------------------------------------------------- */}
+      {/* How the equity actually splits                                   */}
+      {/* ---------------------------------------------------------------- */}
+      <section className="border-t border-white/15 py-16 text-white md:py-24">
+        <div className="mx-auto max-w-[1300px] px-5 sm:px-8 lg:px-12">
+          <div className="max-w-2xl">
+            <h2 className="font-serif text-fluid-h1 font-normal tracking-tight text-white">
+              Who owns what, spelled out
+            </h2>
+            <p className="mt-4 text-fluid-body text-white/75">
+              Equity is the part that goes wrong quietly, years later. So here are three real team
+              shapes and exactly how the company splits in each of them.
+            </p>
+          </div>
+
+          <Tabs defaultValue="scenario1" className="mt-10 w-full">
+            <TabsList className="flex h-auto w-full flex-wrap justify-start gap-3 bg-transparent p-0">
+              {scenarios.map((s) => (
+                <TabsTrigger
+                  key={s.value}
+                  value={s.value}
+                  className="rounded-full border border-[#F0D8C0]/45 bg-transparent px-5 py-2.5 text-sm font-medium text-[#F0D8C0] transition-colors hover:bg-[#F0D8C0]/10 data-[state=active]:border-[#F0D8C0] data-[state=active]:bg-[#F0D8C0] data-[state=active]:text-[#5C3318] data-[state=active]:shadow-none"
+                >
+                  {s.tab}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            {scenarios.map((s) => (
+              <TabsContent key={s.value} value={s.value} className="mt-6">
+                <div className="rounded-2xl border border-white/15 bg-white/[0.07] px-6 py-10 md:px-12 md:py-14">
+                  <h3 className="max-w-4xl font-serif text-3xl font-light leading-[1.05] tracking-tight text-white md:text-[56px]">
+                    {s.title}
+                  </h3>
+                  <ul className="mt-8 max-w-3xl space-y-2.5">
+                    {s.bullets.map((b) => (
+                      <li key={b} className="flex gap-2.5 text-fluid-body leading-relaxed text-white/80">
+                        <span className="mt-1 shrink-0 font-bold text-[#F0D8C0]">✓</span>
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                  {s.footnote ? (
+                    <p className="mt-6 max-w-3xl text-[15px] leading-relaxed text-white/60">
+                      {s.footnote}
+                    </p>
+                  ) : null}
+
+                  <div className="mt-10 border-t border-white/15 pt-3">
+                    <p className="text-sm text-white/60">StartupUniv</p>
+                  </div>
+                </div>
+              </TabsContent>
+            ))}
+          </Tabs>
+
+          <div className="mt-10 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="rounded-2xl border border-white/15 bg-white/[0.07] p-6">
+              <h3 className="font-semibold text-white">Equity issuance terms</h3>
+              <p className="mt-2 text-[15px] leading-relaxed text-white/75">
+                Equity is issued on successful completion of the programme and continued
+                participation in the project. That is deliberate: it keeps everyone in the room for
+                the part that decides whether the company survives its first year.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border-t-2 border-[#F0D8C0]/50 bg-white/[0.07] p-6">
+              <h3 className="font-semibold text-white">Applying as a whole team?</h3>
+              <p className="mt-2 text-[15px] leading-relaxed text-white/75">
+                Bring the people you already build with and we will place you together.
+              </p>
+              <Link href="/plans/team-application">
+                <Button className="mt-5 rounded-full bg-[#F0D8C0] px-7 py-6 text-base font-medium text-[#5C3318] hover:bg-[#F6EFE6]">
+                  Team application
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      
+      <VenturesBand
+        heading="Started here, still running"
+        intro="Over 40 startups have been started at StartupUniv since 2025, by teams that came in on exactly these three plans."
+      />
 
-      
+      {/* ---------------------------------------------------------------- */}
+      {/* Close                                                            */}
+      {/* ---------------------------------------------------------------- */}
+      <section className="py-16 text-white md:py-24">
+        <div className="mx-auto max-w-[1300px] px-5 sm:px-8 lg:px-12">
+          <div className="overflow-hidden rounded-[28px] border border-white/15 bg-white/[0.07]">
+            <div className="grid items-stretch gap-8 p-8 md:grid-cols-[1fr_1fr] md:gap-10 md:p-12">
+              <div>
+                <h2 className="font-serif text-fluid-h2 font-normal tracking-tight text-white">
+                  Still not sure which seat is yours?
+                </h2>
+                <p className="mt-4 max-w-xl text-fluid-body text-white/75">
+                  Most people are not, at this point. Apply anyway — the assessment and the
+                  conversation that follows exist to work that out with you, not to catch you out.
+                </p>
+                <div className="mt-8 flex flex-wrap gap-4">
+                  <Link href="/apply">
+                    <Button className="rounded-full bg-[#F0D8C0] px-7 py-6 text-base font-medium text-[#5C3318] hover:bg-[#F6EFE6]">
+                      Apply now
+                    </Button>
+                  </Link>
+                  <Link href="/contact">
+                    <Button
+                      variant="outline"
+                      className="rounded-full border-2 border-white/40 bg-transparent px-7 py-6 text-base font-medium text-white hover:bg-white hover:text-[#814B28]"
+                    >
+                      Talk to us first
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+              {/* Shown whole at its own 2:1 ratio — the art carries a caption
+                  baked into it, so cropping it to fill the column loses it. */}
+              <div className="self-center overflow-hidden rounded-2xl border border-white/15">
+                <img
+                  src="/landing/home/what-is-image.png"
+                  alt="A StartupUniv team at work"
+                  className="block h-auto w-full"
+                  width={1600}
+                  height={800}
+                  loading="lazy"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </SiteLayout>
   );
 }

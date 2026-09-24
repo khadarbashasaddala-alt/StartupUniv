@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Mail, MapPin, Phone } from "lucide-react";
+import { Mail, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // Instagram Icon
@@ -192,39 +192,15 @@ export function SiteFooter({ hideCTA = true }: { hideCTA?: boolean } = {}) {
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <Phone className="w-5 h-5 text-white" />
-                  <a href="tel:+918045888899" className="text-white hover:underline">
-                    +91 8045888899
+                  <a href="tel:+917093365129" className="text-white hover:underline">
+                    +91 7093365129
                   </a>
                 </div>
                 <div className="flex items-center gap-3">
                   <Mail className="w-5 h-5 text-white" />
-                  <a href="mailto:info@startupvarsity.com" className="text-white hover:underline">
-                    info@startupvarsity.com
+                  <a href="mailto:hello@startupuniv.in" className="text-white hover:underline">
+                    hello@startupuniv.in
                   </a>
-                </div>
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-white mt-0.5" />
-                  <span className="text-white space-y-2 block">
-                    <a
-                      href="https://www.google.com/maps/search/?api=1&query=30,+12th+Main+Rd,+1st+Stage,+Rajajinagar,+Bengaluru,+Karnataka+560010"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: 'inherit', textDecoration: 'none' }}
-                    >
-                      30, 12th Main Rd, 1st Stage, Rajajinagar,<br />
-                      Bengaluru, Karnataka 560010
-                    </a>
-                    <a
-                      href="https://www.google.com/maps/search/?api=1&query=Rooman+Technologies,+Electronic+City+Phase+I,+Electronic+City,+Bengaluru,+Karnataka+560100"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block"
-                      style={{ color: 'inherit', textDecoration: 'none' }}
-                    >
-                      Rooman Technologies, Electronic City Phase I, Electronic City,<br />
-                      Bengaluru, Karnataka 560100
-                    </a>
-                  </span>
                 </div>
               </div>
             </div>

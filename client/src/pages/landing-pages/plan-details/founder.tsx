@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { Rocket } from "lucide-react";
 import { PlanDetailPage } from "@/components/plans/plan-detail-page";
 import { SiteLayout } from "@/components/layout/site-layout";
 import { Button } from "@/components/ui/button";
@@ -7,32 +8,31 @@ import { PLANS_PAGE_ENABLED } from "@/lib/plans-flags";
 export default function FounderPlanPage() {
   if (!PLANS_PAGE_ENABLED) {
     return (
-      <SiteLayout>
-        <section className="min-h-[60vh] flex items-center justify-center bg-white py-20">
-          <div className="max-w-xl mx-auto px-6 text-center">
-            <h1 className="text-fluid-hero font-bold text-gray-900 mb-4">
-              Plans &amp; Pricing — Coming Soon
+      <SiteLayout hideCTA headerTheme="dark" surfaceClassName="bg-[#814B28]">
+        <section className="flex min-h-[60vh] items-center justify-center py-20 text-white">
+          <div className="mx-auto max-w-xl px-6 text-center">
+            <h1 className="text-fluid-h1 font-light tracking-tight text-white">
+              The Founder plan opens <span className="font-semibold">shortly.</span>
             </h1>
-            <p className="text-base md:text-lg text-gray-600 mb-8">
-              We're putting the finishing touches on our plans. Check back soon,
-              or explore our programs in the meantime.
+            <p className="mt-4 text-fluid-h3 font-medium text-[#F0D8C0]">
+              StartupUniv was developed to effectively bridge these gaps.
             </p>
-            <div className="flex flex-wrap justify-center gap-4">
+            <p className="mt-4 text-fluid-body text-white/80">
+              We started in 2025, have worked with more than 20,000 students since, and are
+              finalising the intake for the next founder cohort. Talk to us in the meantime.
+            </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-4">
               <Link href="/">
-                <Button
-                  size="lg"
-                  className="bg-[#17646E] hover:bg-[#1e3a8ae8] text-white px-6 py-4 text-base font-semibold rounded-full"
-                >
-                  Back to Home
+                <Button className="rounded-full bg-[#F0D8C0] px-7 py-6 text-base font-medium text-[#5C3318] hover:bg-[#F6EFE6]">
+                  Back to home
                 </Button>
               </Link>
               <Link href="/program">
                 <Button
-                  size="lg"
                   variant="outline"
-                  className="px-6 py-4 text-base font-semibold rounded-full"
+                  className="rounded-full border-2 border-white/40 bg-transparent px-7 py-6 text-base font-medium text-white hover:bg-white hover:text-[#814B28]"
                 >
-                  Explore Programs
+                  Explore programmes
                 </Button>
               </Link>
             </div>
@@ -45,73 +45,84 @@ export default function FounderPlanPage() {
   return (
     <PlanDetailPage
       hero={{
-        title: "FOUNDER PLAN",
+        eyebrow: "Founder plan",
+        eyebrowIcon: Rocket,
+        titleLight: "Bring the idea. ",
+        titleBold: "We bring everything the idea is missing.",
+        lead: "StartupUniv was developed to effectively bridge these gaps.",
         description:
-          "This program is for founders with ambitious ideas who are ready to build a real startup from the ground up. We provide the capital, the team, the infrastructure, and the strategic guidance necessary to turn your vision into a high-growth company.",
-        leftBgClassName: "bg-[#ffdf8b]",
+          "We started in 2025, have worked with more than 20,000 students since, and partner with universities, skilling bodies and technology companies — VTU, Jain University, NSDC, AWS, IBM, Cisco, Red Hat and NASSCOM among them. As Founder you lead your own company, and that whole network stands behind it.",
+        chips: ["40% equity", "Four-month plan", "Your own team", "Mentor reviews"],
         imageSrc: "/landing/founder-new-bg.jpg",
+        imageAlt: "A founder walking their team through a market analysis",
         applyHref: "/apply?plan=founder",
         exploreHref: "/program",
-        extraContent: (
-          <div className="bg-white/50 rounded-xl p-5 border border-white/60 shadow-sm backdrop-blur-sm">
-            <h4 className="text-[#17646E] font-semibold mb-2">Why StartUpVarsity?</h4>
-            <ul className="text-gray-700 text-sm space-y-1.5">
-              <li className="flex items-start gap-2">
-                <span className="text-[#17646E] font-bold mt-0.5">✓</span>
-                Define your vision and convert it into clear, executable sprint goals
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#17646E] font-bold mt-0.5">✓</span>
-                Choose and curate the execution team you want
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#17646E] font-bold mt-0.5">✓</span>
-                Drive long-term direction by validating opportunities and managing risk
-              </li>
-            </ul>
-          </div>
-        ),
+        highlight: {
+          title: "Why founders start here",
+          points: [
+            "Turn a vision into sprint goals somebody actually owns",
+            "Curate the execution team you want, rather than the one you can find",
+            "Validate opportunities and manage risk with a mentor reviewing every call",
+          ],
+        },
       }}
+      price={{
+        amount: "₹5,00,000",
+        equity: "40% equity share · team support",
+        note: "Four months, a team you help pick, and a mentor who reviews every sprint. Equity is issued on completion of the programme and continued participation in the project.",
+      }}
+      metricsHeading="What the Founder plan puts behind you"
       metrics={[
         {
-          title: "Startup Support",
-          subtitle: "Resources to Kickstart Your Startup",
-          value: "Get hands-on resources and support to turn your idea into reality.",
+          title: "Startup support",
+          subtitle: "Resources to get started",
+          value:
+            "Hands-on resources, infrastructure and the partner network we have built since 2025, pointed at your idea from week one.",
         },
         {
           title: "Equity",
-          subtitle: "Own a Significant Share",
-          value: "Hold 40% equity as the primary Founder.",
+          subtitle: "Own a significant share",
+          value: "Hold 40% as the primary Founder, issued on completion and continued participation.",
         },
         {
-          title: "Team Support",
-          subtitle: "Support While You Build",
-          value: "Get dedicated support to focus on your startup full-time.",
+          title: "Team support",
+          subtitle: "Support while you build",
+          value:
+            "Co-founders, learners and a mentor around you, so you can run the company rather than do every job in it.",
         },
       ]}
+      sectionsHeading="What being the Founder here actually means"
       sections={[
         {
-          title: "Role & Responsibilities:",
+          title: "Role and responsibilities",
           bullets: [
-            "Lead your own startup as the primary Founder",
-            "Get expert mentorship to turn your idea into a real business",
-            "Access a team of interns to help you build and grow",
+            "Lead your own startup as the primary Founder, with final say on direction",
+            "Break the vision into sprints with goals, deliverables and dates that hold",
+            "Build out a team of co-founders and learners and give each of them real ownership",
           ],
         },
         {
-          title: "Support & Guidance:",
+          title: "Support and guidance",
           bullets: [
-            "Honest advice on your business model and market strategy",
-            "A safe place to prototype and test your idea before going full-time",
-            "Preparation for pitching to real investors",
-            "Direct access to hands-on resources and expert support",
+            "Honest review of your business model and market strategy, every sprint",
+            "A safe place to prototype and validate before you commit full-time",
+            "Preparation for pitching to real investors, with the evidence to back it",
+            "Introductions through our academic and industry partners",
           ],
         },
         {
-          title: "Recognition:",
-          bullets: ["Officially recognized as a Founder in the StartUpVarsity ecosystem"],
+          title: "Recognition",
+          bullets: [
+            "Officially recognised as a Founder in the StartupUniv ecosystem",
+            "A record of everything you shipped, reviewed and signed off",
+          ],
         },
       ]}
+      venturesRoute="Founder"
+      venturesHeading="Founders who started where you are"
+      venturesIntro="More than 40 startups have been started here since 2025. These two came in on the Founder plan, from teams who began with nothing but an idea and a deadline."
+      closingTitle="Your company, built properly from day one."
+      closingBody="Apply as Founder and we will take it from there — an assessment, a conversation, and a team assembled around the thing you want to build."
     />
   );
 }
