@@ -109,7 +109,7 @@ if [ $? -eq 0 ]; then
     echo "✅ Database seeded successfully!"
     echo ""
     echo "📊 Summary:"
-    echo "  • 1 Admin user (admin@startupvarsity.com / admin123)"
+    echo "  • 1 Admin user (admin@startupuniv.in / admin123)"
     echo "  • 3 Mentor users"
     echo "  • 1 University organization + user"
     echo "  • 1 Corporate organization + user"

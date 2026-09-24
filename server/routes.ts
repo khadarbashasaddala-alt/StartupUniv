@@ -2369,7 +2369,7 @@ export async function registerRoutes(
       }
 
       // Prevent deleting the main admin account
-      if (targetUser.email === "admin@startupvarsity.com" || targetUser.role === "ADMIN") {
+      if (targetUser.email === "admin@startupuniv.in" || targetUser.role === "ADMIN") {
         return res.status(400).json({ message: "Cannot delete the main admin account" });
       }
 

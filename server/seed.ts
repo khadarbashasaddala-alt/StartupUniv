@@ -66,12 +66,12 @@ async function seed() {
   // =====================
   console.log("👤 Creating admin user...");
 
-  const admin = await getOrCreateUser("admin@startupvarsity.com", {
+  const admin = await getOrCreateUser("admin@startupuniv.in", {
     name: "Admin User",
     password: hashedPassword,
     role: "ADMIN",
   });
-  console.log("  ✓ Admin: admin@startupvarsity.com / admin123");
+  console.log("  ✓ Admin: admin@startupuniv.in / admin123");
 
   // =====================
   // Summary
@@ -83,7 +83,7 @@ async function seed() {
   console.log("  • 1 Admin user only");
   
   console.log("\n🔐 Admin Account:");
-  console.log("  Email:    admin@startupvarsity.com");
+  console.log("  Email:    admin@startupuniv.in");
   console.log("  Password: admin123");
 }
 
