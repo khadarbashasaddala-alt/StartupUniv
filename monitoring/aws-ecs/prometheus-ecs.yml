@@ -1,0 +1,45 @@
+# =============================================================================
+# Prometheus config — StartupVarsity EC2 deployment
+# This file is copied to the monitoring EC2 (i-0d2074724754c91a0) by deploy-to-ec2.sh
+#
+# Prometheus scrapes the StartupVarsity bot's /metrics via the ALB DNS.
+# Replace startupvarsity-portal-alb-2062326273.ap-south-1.elb.amazonaws.com with your actual ALB DNS before deploying.
+#   aws cloudformation describe-stacks --stack-name startupvarsity-portal-stack \
+#     --query "Stacks[0].Outputs[?OutputKey=='LoadBalancerDNS'].OutputValue" \
+#     --output text --region ap-south-1
+# =============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alert_rules.yml"
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # StartupVarsity Bot — FastAPI /metrics scraped directly from app EC2
+  # Port 4001 published on host; monitoring SG allowed via EC2 SG rule
+  - job_name: "startupvarsity-bot"
+    metrics_path: /metrics
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    static_configs:
+      - targets: ["13.233.233.44:4001"]
+        labels:
+          service: "bot"
+          environment: "prod"
+
+  # StartupVarsity Portal — Express/Node.js backend metrics (port 8080)
+  - job_name: "startupvarsity-portal"
+    metrics_path: /metrics
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    static_configs:
+      - targets: ["13.233.233.44:8080"]
+        labels:
+          service: "portal"
+          environment: "prod"

@@ -1,0 +1,294 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "type": "row",
+      "title": "Service Health",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "type": "stat",
+      "title": "API Server Status",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{ "expr": "up{job=\"backend-api\"}", "legendFormat": "API" }],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ],
+          "thresholds": { "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" }
+    },
+    {
+      "type": "stat",
+      "title": "Voice Agent Status",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{ "expr": "up{job=\"voice-agent\"}", "legendFormat": "Voice" }],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ],
+          "thresholds": { "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" }
+    },
+    {
+      "type": "stat",
+      "title": "Active Voice Calls",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{ "expr": "voice_active_calls", "legendFormat": "Calls" }],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "steps": [{ "color": "blue", "value": null }, { "color": "orange", "value": 10 }, { "color": "red", "value": 20 }] }
+        }
+      },
+      "options": { "colorMode": "value", "graphMode": "area", "textMode": "value" }
+    },
+    {
+      "type": "stat",
+      "title": "Total API Requests (24h)",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{ "expr": "sum(increase(http_requests_total{job=\"backend-api\"}[24h]))", "legendFormat": "Requests" }],
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "steps": [{ "color": "green", "value": null }] } } }
+    },
+    {
+      "type": "stat",
+      "title": "API Error Rate (5m)",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{ "expr": "sum(rate(http_requests_total{job=\"backend-api\",status=~\"5..\"}[5m])) / sum(rate(http_requests_total{job=\"backend-api\"}[5m])) * 100", "legendFormat": "Error %" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 2 }, { "color": "red", "value": 5 }] }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "type": "stat",
+      "title": "API p95 Latency",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"backend-api\"}[5m])) by (le))", "legendFormat": "p95" }],
+      "fieldConfig": { "defaults": { "unit": "s", "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 3 }] } } }
+    },
+
+    {
+      "type": "row",
+      "title": "Container CPU & Memory",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "collapsed": false
+    },
+    {
+      "type": "timeseries",
+      "title": "Container CPU Usage (%)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "rate(container_cpu_usage_seconds_total{name=~\"backend-api|voice-agent|frontend|postgres.*\",name!=\"\"}[5m]) * 100", "legendFormat": "{{ name }}" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "custom": { "lineWidth": 2, "fillOpacity": 15, "pointSize": 5 } }
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Container Memory Usage (MB)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "container_memory_usage_bytes{name=~\"backend-api|voice-agent|frontend|postgres.*\",name!=\"\"} / 1024 / 1024", "legendFormat": "{{ name }}" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "decmbytes", "custom": { "lineWidth": 2, "fillOpacity": 15 } }
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] } }
+    },
+
+    {
+      "type": "row",
+      "title": "Host Machine",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "collapsed": false
+    },
+    {
+      "type": "gauge",
+      "title": "Host CPU Usage",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 15 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{ "expr": "100 - (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", "legendFormat": "CPU" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "min": 0, "max": 100,
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 60 }, { "color": "red", "value": 85 }] }
+        }
+      }
+    },
+    {
+      "type": "gauge",
+      "title": "Host Memory Usage",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 15 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{ "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100", "legendFormat": "Memory" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "min": 0, "max": 100,
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 60 }, { "color": "red", "value": 85 }] }
+        }
+      }
+    },
+    {
+      "type": "gauge",
+      "title": "Host Disk Usage",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 15 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{ "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})) * 100", "legendFormat": "Disk" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "min": 0, "max": 100,
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 70 }, { "color": "red", "value": 85 }] }
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Network I/O (bytes/sec)",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 15 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "rate(container_network_receive_bytes_total{name=~\"backend-api|voice-agent\",name!=\"\"}[5m])", "legendFormat": "{{ name }} RX" },
+        { "expr": "rate(container_network_transmit_bytes_total{name=~\"backend-api|voice-agent\",name!=\"\"}[5m])", "legendFormat": "{{ name }} TX" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps", "custom": { "lineWidth": 2, "fillOpacity": 10 } } }
+    },
+
+    {
+      "type": "row",
+      "title": "API Request Metrics",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 21 },
+      "collapsed": false
+    },
+    {
+      "type": "timeseries",
+      "title": "API Requests per Second (by endpoint)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "sum(rate(http_requests_total{job=\"backend-api\"}[5m])) by (endpoint)", "legendFormat": "{{ endpoint }}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 10 } } },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean"] } }
+    },
+    {
+      "type": "timeseries",
+      "title": "API Response Time (p50, p90, p99)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{job=\"backend-api\"}[5m])) by (le))", "legendFormat": "p50" },
+        { "expr": "histogram_quantile(0.90, sum(rate(http_request_duration_seconds_bucket{job=\"backend-api\"}[5m])) by (le))", "legendFormat": "p90" },
+        { "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=\"backend-api\"}[5m])) by (le))", "legendFormat": "p99" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2, "fillOpacity": 10 } } }
+    },
+
+    {
+      "type": "row",
+      "title": "Voice Agent Metrics",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 30 },
+      "collapsed": false
+    },
+    {
+      "type": "timeseries",
+      "title": "Active Voice Calls",
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 31 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{ "expr": "voice_active_calls", "legendFormat": "Active Calls" }],
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 20 } } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Calls per Minute (by status)",
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 31 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "sum(rate(voice_calls_total[5m])) by (status) * 60", "legendFormat": "{{ status }}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 15 } } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Latency: STT / TTS / LLM",
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 31 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, rate(voice_stt_latency_seconds_bucket[5m]))", "legendFormat": "STT p95" },
+        { "expr": "histogram_quantile(0.95, rate(voice_tts_latency_seconds_bucket[5m]))", "legendFormat": "TTS p95" },
+        { "expr": "histogram_quantile(0.95, rate(voice_llm_latency_seconds_bucket[5m]))", "legendFormat": "LLM p95" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2, "fillOpacity": 10 } } }
+    },
+
+    {
+      "type": "row",
+      "title": "Logs (Loki)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 38 },
+      "collapsed": false
+    },
+    {
+      "type": "logs",
+      "title": "Backend API Logs",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 39 },
+      "datasource": { "type": "loki", "uid": "" },
+      "targets": [{ "expr": "{job=\"docker\"} |~ \"backend-api\" | logfmt", "legendFormat": "" }],
+      "options": { "showTime": true, "showLabels": false, "showCommonLabels": false, "wrapLogMessage": true, "sortOrder": "Descending", "dedupStrategy": "none", "enableLogDetails": true }
+    },
+    {
+      "type": "logs",
+      "title": "Voice Agent Logs",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 39 },
+      "datasource": { "type": "loki", "uid": "" },
+      "targets": [{ "expr": "{job=\"docker\"} |~ \"voice-agent\" | logfmt", "legendFormat": "" }],
+      "options": { "showTime": true, "showLabels": false, "showCommonLabels": false, "wrapLogMessage": true, "sortOrder": "Descending", "dedupStrategy": "none", "enableLogDetails": true }
+    },
+    {
+      "type": "timeseries",
+      "title": "Log Error Rate (ERROR/WARN per minute)",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 47 },
+      "datasource": { "type": "loki", "uid": "" },
+      "targets": [
+        { "expr": "sum(rate({job=\"docker\"} |~ \"ERROR\" [5m])) * 60", "legendFormat": "ERROR/min" },
+        { "expr": "sum(rate({job=\"docker\"} |~ \"WARN\" [5m])) * 60", "legendFormat": "WARN/min" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 15 } } }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["crm", "voiceagent", "monitoring"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "CRM VoiceAgent - Overview",
+  "uid": "crm-voiceagent-overview",
+  "version": 1
+}

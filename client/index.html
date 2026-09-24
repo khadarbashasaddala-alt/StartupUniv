@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon.png?v=3" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StartupUniv - Learn. Build. Launch Your Startup.</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- Hide Zoho SalesIQ widget so only Vasty (StartUpVarsity AI) chatbot shows -->
+    <script>
+      (function () {
+        function hideZohoWidget() {
+          try {
+            document.querySelectorAll('iframe[src*="zoho"], iframe[src*="salesiq"]').forEach(function (el) {
+              el.style.display = 'none';
+              el.setAttribute('aria-hidden', 'true');
+            });
+            document.querySelectorAll('[id*="zoho" i], [id*="salesiq" i], [class*="zoho" i], [class*="salesiq" i]').forEach(function (el) {
+              if (el.id !== 'root' && !el.closest('#root')) {
+                el.style.display = 'none';
+                el.setAttribute('aria-hidden', 'true');
+              }
+            });
+          } catch (e) {}
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', hideZohoWidget);
+        } else {
+          hideZohoWidget();
+        }
+        setTimeout(hideZohoWidget, 500);
+        setTimeout(hideZohoWidget, 2000);
+      })();
+    </script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

@@ -1,0 +1,815 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'StartupVarsity Portal - ECS Deployment with RDS PostgreSQL and S3'
+
+Parameters:
+  AppName:
+    Type: String
+    Default: startupvarsity-portal
+    Description: Application name
+  
+  DatabaseUsername:
+    Type: String
+    Default: postgres
+    Description: Database master username
+    NoEcho: false
+  
+  DatabasePassword:
+    Type: String
+    NoEcho: true
+    Description: Database master password (min 8 characters)
+    MinLength: 8
+  
+  ContainerImage:
+    Type: String
+    Description: ECR image URI (e.g., 123456789012.dkr.ecr.us-west-2.amazonaws.com/startupvarsity:latest)
+  
+  ContainerPort:
+    Type: Number
+    Default: 8080
+    Description: Container port
+  
+  DesiredCount:
+    Type: Number
+    Default: 2
+    Description: Desired number of tasks (min 2 for high availability)
+  
+  Cpu:
+    Type: String
+    Default: '1024'
+    AllowedValues: ['256', '512', '1024', '2048', '4096']
+    Description: CPU units for task (1024 = 1 vCPU)
+  
+  Memory:
+    Type: String
+    Default: '2048'
+    AllowedValues: ['512', '1024', '2048', '4096', '8192']
+    Description: Memory for task in MB
+  
+  UseExistingVPC:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+    Description: Set to 'true' to use existing VPC instead of creating new one
+  
+  ExistingVPCId:
+    Type: String
+    Default: ''
+    Description: Existing VPC ID (required if UseExistingVPC is true)
+  
+  ExistingPublicSubnet1Id:
+    Type: String
+    Default: ''
+    Description: Existing public subnet 1 ID (required if UseExistingVPC is true)
+  
+  ExistingPublicSubnet2Id:
+    Type: String
+    Default: ''
+    Description: Existing public subnet 2 ID (required if UseExistingVPC is true)
+  
+  ExistingPrivateSubnet1Id:
+    Type: String
+    Default: ''
+    Description: Existing private subnet 1 ID (required if UseExistingVPC is true)
+  
+  ExistingPrivateSubnet2Id:
+    Type: String
+    Default: ''
+    Description: Existing private subnet 2 ID (required if UseExistingVPC is true)
+
+Mappings:
+  VPCSelector:
+    Create:
+      VPC: VPC
+      PublicSubnet1: PublicSubnet1
+      PublicSubnet2: PublicSubnet2
+      PrivateSubnet1: PrivateSubnet1
+      PrivateSubnet2: PrivateSubnet2
+    UseExisting:
+      VPC: ExistingVPCId
+      PublicSubnet1: ExistingPublicSubnet1Id
+      PublicSubnet2: ExistingPublicSubnet2Id
+      PrivateSubnet1: ExistingPrivateSubnet1Id
+      PrivateSubnet2: ExistingPrivateSubnet2Id
+
+Conditions:
+  CreateVPC: !Equals [!Ref UseExistingVPC, 'false']
+  UseExistingVPC: !Equals [!Ref UseExistingVPC, 'true']
+
+Resources:
+  # VPC and Networking (only created if UseExistingVPC is false)
+  VPC:
+    Type: AWS::EC2::VPC
+    Condition: CreateVPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-vpc'
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Condition: CreateVPC
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-public-subnet-1'
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Condition: CreateVPC
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [1, !GetAZs '']
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-public-subnet-2'
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Condition: CreateVPC
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: 10.0.3.0/24
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-private-subnet-1'
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Condition: CreateVPC
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [1, !GetAZs '']
+      CidrBlock: 10.0.4.0/24
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-private-subnet-2'
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Condition: CreateVPC
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-igw'
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Condition: CreateVPC
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Condition: CreateVPC
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-public-routes'
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    Condition: CreateVPC
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: CreateVPC
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet1
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: CreateVPC
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet2
+
+  # Security Groups
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${AppName}-alb-sg'
+      GroupDescription: Security group for Application Load Balancer
+      VpcId: !If [UseExistingVPC, !Ref ExistingVPCId, !Ref VPC]
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-alb-sg'
+
+  ECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${AppName}-ecs-sg'
+      GroupDescription: Security group for ECS tasks
+      VpcId: !If [UseExistingVPC, !Ref ExistingVPCId, !Ref VPC]
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref ContainerPort
+          ToPort: !Ref ContainerPort
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-ecs-sg'
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${AppName}-rds-sg'
+      GroupDescription: Security group for RDS database
+      VpcId: !If [UseExistingVPC, !Ref ExistingVPCId, !Ref VPC]
+      SecurityGroupIngress:
+        # Allow access from ECS (internal)
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref ECSSecurityGroup
+        # GitHub Actions IP Ranges (US East - Virginia region)
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 4.148.0.0/14
+          Description: GitHub Actions - Azure US East
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 13.64.0.0/11
+          Description: GitHub Actions - Azure
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 20.0.0.0/8
+          Description: GitHub Actions - Azure Global
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 40.64.0.0/10
+          Description: GitHub Actions - Azure Global 2
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 52.160.0.0/11
+          Description: GitHub Actions - Azure US
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 52.224.0.0/11
+          Description: GitHub Actions - Azure US East
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 104.40.0.0/13
+          Description: GitHub Actions - Azure
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 168.61.0.0/16
+          Description: GitHub Actions - Azure
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 191.232.0.0/13
+          Description: GitHub Actions - Azure Global
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-rds-sg'
+
+  # S3 Bucket for file storage
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AppName}-files-${AWS::AccountId}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-files'
+
+  # RDS Subnet Group
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: !Sub '${AppName}-db-subnet-group'
+      DBSubnetGroupDescription: Subnet group for RDS database
+      SubnetIds:
+        - !If [UseExistingVPC, !Ref ExistingPublicSubnet1Id, !Ref PublicSubnet1]
+        - !If [UseExistingVPC, !Ref ExistingPublicSubnet2Id, !Ref PublicSubnet2]
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-db-subnet-group'
+
+  # RDS PostgreSQL Database
+  RDSDatabase:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: !Sub '${AppName}-db'
+      Engine: postgres
+      EngineVersion: '15.10'
+      DBInstanceClass: db.t3.small
+      AllocatedStorage: 50
+      StorageType: gp3
+      MasterUsername: !Ref DatabaseUsername
+      MasterUserPassword: !Ref DatabasePassword
+      DBName: startupvarsity
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      BackupRetentionPeriod: 7
+      MultiAZ: false
+      PubliclyAccessible: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-db'
+
+  # IAM Role for ECS Task Execution
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AppName}-ecs-task-execution-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource:
+                  - !Sub '${S3Bucket.Arn}/*'
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt S3Bucket.Arn
+
+  # IAM Role for ECS Task (application role)
+  ECSTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AppName}-ecs-task-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource:
+                  - !Sub '${S3Bucket.Arn}/*'
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt S3Bucket.Arn
+
+  # CloudWatch Log Group
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/ecs/${AppName}'
+      RetentionInDays: 7
+
+  # ECS Cluster
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub '${AppName}-cluster'
+      CapacityProviders:
+        - FARGATE
+        - FARGATE_SPOT
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Weight: 1
+
+  # ECS Task Definition
+  ECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    DependsOn:
+      - DatabaseURLSecret
+      - SessionSecret
+      - SendGridApiKeySecret
+      - SecretsManagerAccessPolicy
+    Properties:
+      Family: !Sub '${AppName}-task'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: !Ref Cpu
+      Memory: !Ref Memory
+      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt ECSTaskRole.Arn
+      ContainerDefinitions:
+        - Name: !Ref AppName
+          Image: !Ref ContainerImage
+          Command:
+            - "npm"
+            - "start"
+          PortMappings:
+            - ContainerPort: !Ref ContainerPort
+              Protocol: tcp
+          Environment:
+            - Name: NODE_ENV
+              Value: production
+            - Name: PORT
+              Value: !Ref ContainerPort
+            - Name: AWS_REGION
+              Value: !Ref AWS::Region
+            - Name: AWS_S3_BUCKET_NAME
+              Value: !Ref S3Bucket
+            - Name: PRIVATE_OBJECT_DIR
+              Value: !Sub '${S3Bucket}/uploads'
+            - Name: PUBLIC_OBJECT_SEARCH_PATHS
+              Value: !Sub '${S3Bucket}/public'
+            - Name: EMAIL_FROM
+              Value: hello@startupvarsity.com
+            - Name: DEFAULT_FROM_EMAIL
+              Value: hello@startupvarsity.com
+            - Name: PORTAL_URL
+              Value: https://www.startupvarsity.com
+            - Name: PAYMENT_PORTAL_URL
+              Value: https://startupvarsity.rooman.net
+            - Name: BOT_PORT
+              Value: '4001'
+            - Name: BOT_SERVICE_URL
+              Value: http://localhost:4001
+          Secrets:
+            - Name: DATABASE_URL
+              ValueFrom: !Ref DatabaseURLSecret
+            - Name: SESSION_SECRET
+              ValueFrom: !Ref SessionSecret
+            - Name: SENDGRID_API_KEY
+              ValueFrom: !Ref SendGridApiKeySecret
+            - Name: EMAIL_HOST_PASSWORD
+              ValueFrom: !Ref SendGridApiKeySecret
+            - Name: RAZORPAY_KEY_ID
+              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AppName}/RAZORPAY_KEY_ID'
+            - Name: RAZORPAY_KEY_SECRET
+              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AppName}/RAZORPAY_KEY_SECRET'
+            - Name: RAZORPAY_WEBHOOK_SECRET
+              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AppName}/RAZORPAY_WEBHOOK_SECRET'
+            - Name: OPENAI_API_KEY
+              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AppName}/OPENAI_API_KEY'
+            - Name: GOOGLE_CALENDAR_CLIENT_ID
+              ValueFrom: !GetAtt GoogleCalendarClientIdSecret.Arn
+            - Name: GOOGLE_CALENDAR_CLIENT_SECRET
+              ValueFrom: !GetAtt GoogleCalendarClientSecretSecret.Arn
+            - Name: GOOGLE_CALENDAR_REFRESH_TOKEN
+              ValueFrom: !GetAtt GoogleCalendarRefreshTokenSecret.Arn
+            - Name: GOOGLE_CALENDAR_ID
+              ValueFrom: !GetAtt GoogleCalendarIdSecret.Arn
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+          # Container health check so ECS reports Healthy/Unhealthy (image has curl via Dockerfile.aws)
+          HealthCheck:
+            Command: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 120
+
+  # Application Load Balancer
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub '${AppName}-alb'
+      Type: application
+      Scheme: internet-facing
+      Subnets:
+        - !If [UseExistingVPC, !Ref ExistingPublicSubnet1Id, !Ref PublicSubnet1]
+        - !If [UseExistingVPC, !Ref ExistingPublicSubnet2Id, !Ref PublicSubnet2]
+      SecurityGroups:
+        - !Ref ALBSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-alb'
+
+  # Target Group
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub '${AppName}-tg'
+      Port: !Ref ContainerPort
+      Protocol: HTTP
+      VpcId: !If [UseExistingVPC, !Ref ExistingVPCId, !Ref VPC]
+      TargetType: ip
+      HealthCheckPath: /health
+      HealthCheckProtocol: HTTP
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 5
+      Matcher:
+        HttpCode: '200'
+      # Enable sticky sessions (session affinity) so users stay on same container
+      # This fixes MemoryStore session issue with multiple containers
+      TargetGroupAttributes:
+        - Key: stickiness.enabled
+          Value: 'true'
+        - Key: stickiness.type
+          Value: lb_cookie
+        - Key: stickiness.lb_cookie.duration_seconds
+          Value: '86400'
+
+  # ALB Listener
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  # ECS Service
+  ECSService:
+    Type: AWS::ECS::Service
+    DependsOn: ALBListener
+    Properties:
+      ServiceName: !Sub '${AppName}-service'
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref ECSTaskDefinition
+      DesiredCount: !Ref DesiredCount
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets:
+            - !If [UseExistingVPC, !Ref ExistingPublicSubnet1Id, !Ref PublicSubnet1]
+            - !If [UseExistingVPC, !Ref ExistingPublicSubnet2Id, !Ref PublicSubnet2]
+          SecurityGroups:
+            - !Ref ECSSecurityGroup
+      LoadBalancers:
+        - ContainerName: !Ref AppName
+          ContainerPort: !Ref ContainerPort
+          TargetGroupArn: !Ref TargetGroup
+      HealthCheckGracePeriodSeconds: 200
+      # Deployment configuration for zero-downtime updates
+      DeploymentConfiguration:
+        MaximumPercent: 200  # Allow 2x desired count during deployment (temporarily run 2 tasks)
+        MinimumHealthyPercent: 100  # Keep at least 100% healthy during deployment
+        DeploymentCircuitBreaker:
+          Enable: true  # Auto-rollback if deployment fails
+          Rollback: true
+      # Rolling update strategy: replace tasks one at a time
+      DeploymentController: ECS
+
+  # Secrets Manager Secrets
+  DatabaseURLSecret:
+    Type: AWS::SecretsManager::Secret
+    DependsOn: RDSDatabase
+    Properties:
+      Name: !Sub '${AppName}/DATABASE_URL'
+      Description: Database connection string
+      SecretString: !Sub 'postgresql://${DatabaseUsername}:${DatabasePassword}@${RDSDatabase.Endpoint.Address}:5432/startupvarsity?sslmode=require'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}/DATABASE_URL'
+
+  SessionSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AppName}/SESSION_SECRET'
+      Description: Session secret key
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: 'secret'
+        ExcludeCharacters: '"@/\'
+        PasswordLength: 32
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}/SESSION_SECRET'
+
+  # SendGrid API key for email (hello@startupvarsity.com). Create with placeholder;
+  # set real value via GitHub Actions (SENDGRID_API_KEY repo secret) or AWS Console.
+  SendGridApiKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AppName}/SENDGRID_API_KEY'
+      Description: SendGrid API key for sending emails from hello@startupvarsity.com
+      SecretString: 'REPLACE_ME'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}/SENDGRID_API_KEY'
+
+  # Google Calendar (create with placeholders; set real values via GitHub Actions or Console)
+  GoogleCalendarClientIdSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AppName}/GOOGLE_CALENDAR_CLIENT_ID'
+      Description: Google OAuth2 Client ID for Calendar API
+      SecretString: 'REPLACE_ME'
+  GoogleCalendarClientSecretSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AppName}/GOOGLE_CALENDAR_CLIENT_SECRET'
+      Description: Google OAuth2 Client Secret for Calendar API
+      SecretString: 'REPLACE_ME'
+  GoogleCalendarRefreshTokenSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AppName}/GOOGLE_CALENDAR_REFRESH_TOKEN'
+      Description: Google OAuth2 Refresh Token for Calendar API
+      SecretString: 'REPLACE_ME'
+  GoogleCalendarIdSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AppName}/GOOGLE_CALENDAR_ID'
+      Description: Google Calendar ID (e.g. primary)
+      SecretString: 'primary'
+
+  # NOTE: OpenAI and Razorpay secrets are managed externally (CLI or GitHub Actions).
+  # ECS Task Definition references them by ARN.
+
+  # Auto-Scaling for ECS Service
+  AutoScalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AppName}-auto-scaling-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: application-autoscaling.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceAutoscaleRole
+
+  ScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn: ECSService
+    Properties:
+      MaxCapacity: 6
+      MinCapacity: 2
+      ResourceId: !Sub 'service/${ECSCluster}/${ECSService.Name}'
+      RoleARN: !GetAtt AutoScalingRole.Arn
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+
+  ScalingPolicyCPU:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub '${AppName}-cpu-scaling'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref ScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        TargetValue: 70
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 60
+
+  ScalingPolicyMemory:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub '${AppName}-memory-scaling'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref ScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageMemoryUtilization
+        TargetValue: 75
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 60
+
+  # Grant ECS Task Execution Role access to Secrets Manager
+  SecretsManagerAccessPolicy:
+    Type: AWS::IAM::Policy
+    DependsOn:
+      - DatabaseURLSecret
+      - SessionSecret
+      - SendGridApiKeySecret
+      - GoogleCalendarClientIdSecret
+      - GoogleCalendarClientSecretSecret
+      - GoogleCalendarRefreshTokenSecret
+      - GoogleCalendarIdSecret
+    Properties:
+      PolicyName: SecretsManagerAccess
+      Roles:
+        - !Ref ECSTaskExecutionRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+              - secretsmanager:DescribeSecret
+            Resource:
+              - !Sub '${DatabaseURLSecret}*'
+              - !Sub '${SessionSecret}*'
+              - !Sub '${SendGridApiKeySecret}*'
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AppName}/RAZORPAY_KEY_ID*'
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AppName}/RAZORPAY_KEY_SECRET*'
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AppName}/RAZORPAY_WEBHOOK_SECRET*'
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AppName}/OPENAI_API_KEY*'
+              # Google Calendar secrets (wildcard for Secrets Manager suffix)
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AppName}/GOOGLE_CALENDAR_CLIENT_ID*'
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AppName}/GOOGLE_CALENDAR_CLIENT_SECRET*'
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AppName}/GOOGLE_CALENDAR_REFRESH_TOKEN*'
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AppName}/GOOGLE_CALENDAR_ID*'
+
+Outputs:
+  ApplicationURL:
+    Description: Application Load Balancer URL
+    Value: !Sub 'http://${ApplicationLoadBalancer.DNSName}'
+    Export:
+      Name: !Sub '${AppName}-URL'
+
+  LoadBalancerDNS:
+    Description: Load Balancer DNS Name
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+    Export:
+      Name: !Sub '${AppName}-DNS'
+
+  DatabaseEndpoint:
+    Description: RDS Database Endpoint
+    Value: !GetAtt RDSDatabase.Endpoint.Address
+    Export:
+      Name: !Sub '${AppName}-DB-Endpoint'
+
+  DatabasePort:
+    Description: RDS Database Port
+    Value: !GetAtt RDSDatabase.Endpoint.Port
+    Export:
+      Name: !Sub '${AppName}-DB-Port'
+
+  S3BucketName:
+    Description: S3 Bucket Name for file storage
+    Value: !Ref S3Bucket
+    Export:
+      Name: !Sub '${AppName}-S3-Bucket'
+
+  ECSClusterName:
+    Description: ECS Cluster Name
+    Value: !Ref ECSCluster
+    Export:
+      Name: !Sub '${AppName}-Cluster'
+
+  ECSServiceName:
+    Description: ECS Service Name
+    Value: !GetAtt ECSService.Name
+    Export:
+      Name: !Sub '${AppName}-Service'
+
+  VPCId:
+    Description: VPC ID
+    Value: !If [UseExistingVPC, !Ref ExistingVPCId, !Ref VPC]
+    Export:
+      Name: !Sub '${AppName}-VPC'
+

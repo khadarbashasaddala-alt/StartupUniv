@@ -1,0 +1,1249 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  StartupVarsity PRODUCTION Infrastructure - ap-south-1 (Mumbai)
+  Single ECS Fargate service: Node.js Express (port 8080) + Python bot sidecar (port 4001)
+  in one container via Dockerfile.aws. ALB → ECS → RDS (private). NAT Gateway for outbound
+  (SendGrid, OpenAI, Razorpay, Keycloak, Google Calendar). S3 + ECR + CloudWatch + Secrets Manager.
+  GitHub OIDC for CI/CD. DesiredCount=0 on first deploy — push image to ECR first, then set to 1.
+
+# =============================================================================
+# DEPLOY COMMAND (first time):
+#   aws cloudformation create-stack \
+#     --stack-name startupvarsity-prod \
+#     --template-body file://infrastructure/aws/aws-ecs-fargate-cloudformation.yaml \
+#     --parameters \
+#       ParameterKey=DBPassword,ParameterValue=<DB_PASS> \
+#       ParameterKey=SessionSecret,ParameterValue=<SESSION_SECRET> \
+#       ParameterKey=SendGridAPIKey,ParameterValue=<SENDGRID_KEY> \
+#       ParameterKey=KeycloakClientSecret,ParameterValue=<KC_SECRET> \
+#       ParameterKey=KeycloakAdminPassword,ParameterValue=<KC_ADMIN_PASS> \
+#       ParameterKey=RazorpayKeyId,ParameterValue=<RZP_KEY_ID> \
+#       ParameterKey=RazorpayKeySecret,ParameterValue=<RZP_SECRET> \
+#       ParameterKey=OpenAIAPIKey,ParameterValue=<OPENAI_KEY> \
+#       ParameterKey=GoogleCalendarClientSecret,ParameterValue=<GCal_SECRET> \
+#       ParameterKey=GoogleCalendarRefreshToken,ParameterValue=<GCal_REFRESH> \
+#       ParameterKey=GoogleCalendarClientId,ParameterValue=<GCal_CLIENT_ID> \
+#     --capabilities CAPABILITY_NAMED_IAM \
+#     --region ap-south-1
+#
+# After stack creates:
+#   1. Get GitHubActionsRoleARN from Outputs → set as AWS_ROLE_ARN secret in GitHub
+#   2. Get ECRRepositoryURI from Outputs → used in CI/CD workflow
+#   3. Get ClusterName + ServiceName from Outputs → used in CI/CD workflow
+#   4. Push code to main → GitHub Actions builds image + deploys to ECS
+#   5. Update ECS service desired count to 1 after first successful image push
+# =============================================================================
+
+# ═══════════════════════════════════════════════════════════════
+# PARAMETERS
+# ═══════════════════════════════════════════════════════════════
+Parameters:
+
+  # ── TLS ──
+  ACMCertificateArn:
+    Type: String
+    Default: ""
+    Description: >
+      (Optional) ACM certificate ARN for HTTPS on ALB.
+      If provided: port 443 listener created, port 80 redirects to HTTPS.
+      If empty: HTTP only on port 80.
+
+  # ── Database ──
+  DBPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    Description: RDS master password (min 8 chars)
+
+  DatabaseUsername:
+    Type: String
+    Default: startupvarsity
+    Description: RDS master username
+
+  DatabaseName:
+    Type: String
+    Default: postgres
+    Description: RDS database name
+
+  # ── App Secrets ──
+  SessionSecret:
+    Type: String
+    NoEcho: true
+    Description: Express session signing secret (64-char hex recommended)
+
+  SendGridAPIKey:
+    Type: String
+    NoEcho: true
+    Description: SendGrid API key for email delivery
+
+  # ── Keycloak SSO ──
+  KeycloakClientSecret:
+    Type: String
+    NoEcho: true
+    Description: Keycloak OIDC client secret
+
+  KeycloakAdminPassword:
+    Type: String
+    NoEcho: true
+    Description: Keycloak admin console password
+
+  KeycloakIssuer:
+    Type: String
+    Default: "https://sso.startupvarsity.com/realms/startupvarsity"
+    Description: Keycloak issuer URL
+
+  KeycloakClientId:
+    Type: String
+    Default: startupvarsity-app
+    Description: Keycloak OIDC client ID
+
+  KeycloakAdminUsername:
+    Type: String
+    Default: admin
+    Description: Keycloak admin username
+
+  # ── Razorpay ──
+  RazorpayKeyId:
+    Type: String
+    Description: Razorpay live key ID (rzp_live_...)
+
+  RazorpayKeySecret:
+    Type: String
+    NoEcho: true
+    Description: Razorpay live key secret
+
+  RazorpayWebhookSecret:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: (Optional) Razorpay webhook secret
+
+  # ── OpenAI (Bot) ──
+  OpenAIAPIKey:
+    Type: String
+    NoEcho: true
+    Description: OpenAI API key for chatbot microservice
+
+  # ── Google Calendar ──
+  GoogleCalendarClientId:
+    Type: String
+    Description: Google OAuth2 client ID for Calendar API
+
+  GoogleCalendarClientSecret:
+    Type: String
+    NoEcho: true
+    Description: Google OAuth2 client secret for Calendar API
+
+  GoogleCalendarRefreshToken:
+    Type: String
+    NoEcho: true
+    Description: Google OAuth2 refresh token for Calendar API
+
+  GoogleCalendarId:
+    Type: String
+    Default: primary
+    Description: Google Calendar ID
+
+  # ── App Config ──
+  AppURL:
+    Type: String
+    Default: "https://www.startupvarsity.com"
+    Description: Public app URL (used in CORS, redirect URIs)
+
+  DefaultFromEmail:
+    Type: String
+    Default: "hello@startupvarsity.com"
+    Description: Default from email address
+
+  # ── CI/CD ──
+  GitHubOrg:
+    Type: String
+    Default: Rooman-R-D
+    Description: GitHub organisation name (for OIDC trust)
+
+  GitHubRepo:
+    Type: String
+    Default: StartUpVarsity
+    Description: GitHub repository name (for OIDC trust)
+
+# ═══════════════════════════════════════════════════════════════
+# CONDITIONS
+# ═══════════════════════════════════════════════════════════════
+Conditions:
+  HasACMCert: !Not [!Equals [!Ref ACMCertificateArn, ""]]
+
+# ═══════════════════════════════════════════════════════════════
+# RESOURCES
+# ═══════════════════════════════════════════════════════════════
+Resources:
+
+# ─────────────────────────────────────────────────────────────
+# VPC & NETWORKING
+# ─────────────────────────────────────────────────────────────
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-vpc
+
+  IGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-igw
+
+  IGWAttach:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref IGW
+
+  # ── Public Subnets (ALB) ──
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: ap-south-1a
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-public-a
+
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: ap-south-1b
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-public-b
+
+  # ── Private Subnets (ECS + RDS) ──
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: ap-south-1a
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-private-a
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.4.0/24
+      AvailabilityZone: ap-south-1b
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-private-b
+
+  # ── Public Route Table ──
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-public-rt
+
+  PublicDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: IGWAttach
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref IGW
+
+  PublicSubnetAAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetBAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetB
+      RouteTableId: !Ref PublicRouteTable
+
+  # ── Private Route Table ──
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-private-rt
+
+  PrivateDefaultRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGateway
+
+  PrivateSubnetAAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnetBAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetB
+      RouteTableId: !Ref PrivateRouteTable
+
+# ─────────────────────────────────────────────────────────────
+# NAT GATEWAY
+# Needed for outbound traffic from private ECS tasks to:
+# SendGrid, OpenAI, Razorpay, Keycloak (sso.startupvarsity.com),
+# Google Calendar API, ECR (non-VPC-endpoint)
+# ─────────────────────────────────────────────────────────────
+  NATElasticIP:
+    Type: AWS::EC2::EIP
+    DependsOn: IGWAttach
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-nat-eip
+
+  NATGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NATElasticIP.AllocationId
+      SubnetId: !Ref PublicSubnetA
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-nat
+
+# ─────────────────────────────────────────────────────────────
+# VPC ENDPOINT — S3 (saves NAT data-transfer costs for S3)
+# ─────────────────────────────────────────────────────────────
+  S3VPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref PublicRouteTable
+        - !Ref PrivateRouteTable
+
+# ─────────────────────────────────────────────────────────────
+# SECURITY GROUPS
+# ─────────────────────────────────────────────────────────────
+  ALBSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ALB - HTTP/HTTPS from internet
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP from internet
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS from internet
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-alb-sg
+
+  AppECSSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: App ECS tasks - port 8080 from ALB only
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          SourceSecurityGroupId: !Ref ALBSG
+          Description: Express app port from ALB
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-app-sg
+
+  RDSSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: RDS - PostgreSQL from ECS tasks only
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref AppECSSG
+          Description: PostgreSQL from ECS app tasks
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-rds-sg
+
+# ─────────────────────────────────────────────────────────────
+# SECRETS MANAGER
+# ─────────────────────────────────────────────────────────────
+  DBPasswordSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: startupvarsity-prod/db-password
+      Description: RDS master password
+      SecretString: !Ref DBPassword
+
+  # Full DATABASE_URL — constructed after RDS endpoint is known
+  DatabaseURLSecret:
+    Type: AWS::SecretsManager::Secret
+    DependsOn: RDS
+    Properties:
+      Name: startupvarsity-prod/database-url
+      Description: Full PostgreSQL connection string for Drizzle ORM
+      SecretString: !Sub
+        - "postgresql://${User}:${Pass}@${Host}:5432/${DBName}?sslmode=require"
+        - User: !Ref DatabaseUsername
+          Pass: !Ref DBPassword
+          Host: !GetAtt RDS.Endpoint.Address
+          DBName: !Ref DatabaseName
+
+  SessionSecretSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: startupvarsity-prod/session-secret
+      Description: Express session signing secret
+      SecretString: !Ref SessionSecret
+
+  SendGridAPIKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: startupvarsity-prod/sendgrid-api-key
+      Description: SendGrid API key
+      SecretString: !Ref SendGridAPIKey
+
+  KeycloakClientSecretSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: startupvarsity-prod/keycloak-client-secret
+      Description: Keycloak OIDC client secret
+      SecretString: !Ref KeycloakClientSecret
+
+  KeycloakAdminPasswordSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: startupvarsity-prod/keycloak-admin-password
+      Description: Keycloak admin password
+      SecretString: !Ref KeycloakAdminPassword
+
+  RazorpayKeySecretSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: startupvarsity-prod/razorpay-key-secret
+      Description: Razorpay live key secret
+      SecretString: !Ref RazorpayKeySecret
+
+  RazorpayWebhookSecretSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: startupvarsity-prod/razorpay-webhook-secret
+      Description: Razorpay webhook secret (optional)
+      SecretString: !Ref RazorpayWebhookSecret
+
+  OpenAIAPIKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: startupvarsity-prod/openai-api-key
+      Description: OpenAI API key for bot service
+      SecretString: !Ref OpenAIAPIKey
+
+  GoogleCalendarClientSecretSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: startupvarsity-prod/google-calendar-client-secret
+      Description: Google Calendar OAuth2 client secret
+      SecretString: !Ref GoogleCalendarClientSecret
+
+  GoogleCalendarRefreshTokenSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: startupvarsity-prod/google-calendar-refresh-token
+      Description: Google Calendar OAuth2 refresh token
+      SecretString: !Ref GoogleCalendarRefreshToken
+
+# ─────────────────────────────────────────────────────────────
+# S3 — private bucket, presigned URLs for media access
+# ─────────────────────────────────────────────────────────────
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "startupvarsity-prod-${AWS::AccountId}-${AWS::Region}"
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireOldVersions
+            NoncurrentVersionExpirationInDays: 30
+            Status: Enabled
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ["*"]
+            AllowedMethods: [GET, PUT, POST, DELETE]
+            AllowedOrigins:
+              - !Ref AppURL
+              - "http://localhost:5000"
+            MaxAge: 3600
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-s3
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowAppECSAccess
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt AppTaskRole.Arn
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+              - s3:DeleteObject
+              - s3:ListBucket
+            Resource:
+              - !GetAtt S3Bucket.Arn
+              - !Sub "${S3Bucket.Arn}/*"
+
+# ─────────────────────────────────────────────────────────────
+# ECR — single repo for the monolith image (built via Dockerfile.aws)
+# ─────────────────────────────────────────────────────────────
+  ECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: startupvarsity-prod
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      LifecyclePolicy:
+        LifecyclePolicyText: >
+          {"rules":[{"rulePriority":1,"description":"Keep last 10 images",
+          "selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":10},
+          "action":{"type":"expire"}}]}
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-ecr
+
+# ─────────────────────────────────────────────────────────────
+# CLOUDWATCH LOG GROUP
+# ─────────────────────────────────────────────────────────────
+  AppLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/startupvarsity-prod
+      RetentionInDays: 14
+
+# ─────────────────────────────────────────────────────────────
+# IAM ROLES
+# ─────────────────────────────────────────────────────────────
+
+  # Execution Role — pull ECR image, fetch secrets, write logs
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: startupvarsity-prod-ecs-execution-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: SecretsAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Ref DBPasswordSecret
+                  - !Ref DatabaseURLSecret
+                  - !Ref SessionSecretSecret
+                  - !Ref SendGridAPIKeySecret
+                  - !Ref KeycloakClientSecretSecret
+                  - !Ref KeycloakAdminPasswordSecret
+                  - !Ref RazorpayKeySecretSecret
+                  - !Ref RazorpayWebhookSecretSecret
+                  - !Ref OpenAIAPIKeySecret
+                  - !Ref GoogleCalendarClientSecretSecret
+                  - !Ref GoogleCalendarRefreshTokenSecret
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/ecs/startupvarsity-prod:*"
+
+  # Task Role — runtime permissions (S3 + ECS Exec for debugging)
+  AppTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: startupvarsity-prod-app-task-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt S3Bucket.Arn
+                  - !Sub "${S3Bucket.Arn}/*"
+        - PolicyName: ECSExecAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssmmessages:CreateControlChannel
+                  - ssmmessages:CreateDataChannel
+                  - ssmmessages:OpenControlChannel
+                  - ssmmessages:OpenDataChannel
+                Resource: "*"
+
+  # GitHub Actions Role — OIDC-based, no stored AWS keys
+  GitHubActionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: startupvarsity-prod-github-actions-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Sub "arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+              StringLike:
+                "token.actions.githubusercontent.com:sub":
+                  !Sub "repo:${GitHubOrg}/${GitHubRepo}:*"
+      Policies:
+        - PolicyName: ECRPushAndECSDeploy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                  - ecr:PutImage
+                Resource: !GetAtt ECRRepository.Arn
+              - Effect: Allow
+                Action:
+                  - ecs:UpdateService
+                  - ecs:DescribeServices
+                  - ecs:RegisterTaskDefinition
+                  - ecs:DescribeTaskDefinition
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource:
+                  - !GetAtt ECSTaskExecutionRole.Arn
+                  - !GetAtt AppTaskRole.Arn
+              - Effect: Allow
+                Action:
+                  - secretsmanager:PutSecretValue
+                Resource:
+                  - !Ref SendGridAPIKeySecret
+                  - !Ref OpenAIAPIKeySecret
+                  - !Ref RazorpayKeySecretSecret
+                  - !Ref GoogleCalendarClientSecretSecret
+                  - !Ref GoogleCalendarRefreshTokenSecret
+              - Effect: Allow
+                Action:
+                  - cloudformation:DescribeStacks
+                Resource: !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/startupvarsity-prod/*"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:DescribeLogGroups
+                Resource: "*"
+
+  # GitHub OIDC Provider (only create once per account — skip if already exists)
+  GitHubOIDCProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+        - 1c58a3a8518e8759bf075b76b750d4f2df264fcd
+
+# ─────────────────────────────────────────────────────────────
+# RDS PostgreSQL 16 — private subnet, encrypted, deletion protection
+# ─────────────────────────────────────────────────────────────
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: startupvarsity-prod-db-subnet-group
+      DBSubnetGroupDescription: Private subnets for production RDS
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-db-subnet-group
+
+  RDS:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: startupvarsity-prod-postgres
+      Engine: postgres
+      EngineVersion: "16.3"
+      DBInstanceClass: db.t4g.small
+      AllocatedStorage: "20"
+      MaxAllocatedStorage: 100
+      StorageType: gp3
+      StorageEncrypted: true
+      DBName: !Ref DatabaseName
+      MasterUsername: !Ref DatabaseUsername
+      MasterUserPassword: !Ref DBPassword
+      PubliclyAccessible: false
+      MultiAZ: false
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref RDSSG
+      BackupRetentionPeriod: 7
+      PreferredBackupWindow: "19:00-20:00"
+      PreferredMaintenanceWindow: "sun:20:00-sun:21:00"
+      DeletionProtection: true
+      EnableCloudwatchLogsExports:
+        - postgresql
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-rds
+
+# ─────────────────────────────────────────────────────────────
+# APPLICATION LOAD BALANCER
+# ─────────────────────────────────────────────────────────────
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: startupvarsity-prod-alb
+      Scheme: internet-facing
+      Type: application
+      Subnets:
+        - !Ref PublicSubnetA
+        - !Ref PublicSubnetB
+      SecurityGroups:
+        - !Ref ALBSG
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: "300"
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-alb
+
+  # Single target group — Express handles all routes (static, /api, /bot, /health)
+  AppTG:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: startupvarsity-prod-app-tg
+      Port: 8080
+      Protocol: HTTP
+      TargetType: ip
+      VpcId: !Ref VPC
+      HealthCheckEnabled: true
+      HealthCheckPath: /health
+      HealthCheckProtocol: HTTP
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher:
+        HttpCode: "200-299"
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: "30"
+        - Key: stickiness.enabled
+          Value: "true"
+        - Key: stickiness.type
+          Value: lb_cookie
+        - Key: stickiness.lb_cookie.duration_seconds
+          Value: "86400"
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-app-tg
+
+  # HTTP Listener — redirect to HTTPS if cert exists, else forward
+  HTTPListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ALB
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - !If
+          - HasACMCert
+          - Type: redirect
+            RedirectConfig:
+              Protocol: HTTPS
+              Port: "443"
+              StatusCode: HTTP_301
+          - Type: forward
+            TargetGroupArn: !Ref AppTG
+
+  # HTTPS Listener — only if ACM cert provided
+  HTTPSListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: HasACMCert
+    Properties:
+      LoadBalancerArn: !Ref ALB
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref ACMCertificateArn
+      SslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref AppTG
+
+# ─────────────────────────────────────────────────────────────
+# ECS CLUSTER
+# ─────────────────────────────────────────────────────────────
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: startupvarsity-prod-cluster
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-cluster
+
+# ─────────────────────────────────────────────────────────────
+# ECS TASK DEFINITION
+# Single container from Dockerfile.aws:
+#   - Express API + static SPA on port 8080
+#   - Python bot (FastAPI) on port 4001 (internal, not exposed to ALB)
+# CMD: "cd /app/bot && python3 -m uvicorn main:app --host 0.0.0.0 --port 4001 &
+#        cd /app && node dist/index.cjs"
+# ─────────────────────────────────────────────────────────────
+  AppTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: startupvarsity-prod-app
+      Cpu: "2048"
+      Memory: "4096"
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt AppTaskRole.Arn
+      ContainerDefinitions:
+        - Name: app
+          # Placeholder — CI/CD will update to real ECR image on first deploy
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/startupvarsity-prod:latest"
+          Essential: true
+          PortMappings:
+            - ContainerPort: 8080
+              Protocol: tcp
+
+          # ── Non-secret env vars ──
+          Environment:
+            - Name: NODE_ENV
+              Value: production
+            - Name: PORT
+              Value: "8080"
+            - Name: BOT_PORT
+              Value: "4001"
+            - Name: BOT_SERVICE_URL
+              Value: "http://localhost:4001"
+            - Name: AWS_REGION
+              Value: !Ref AWS::Region
+            - Name: AWS_DEFAULT_REGION
+              Value: !Ref AWS::Region
+            - Name: AWS_S3_BUCKET_NAME
+              Value: !Sub "startupvarsity-prod-${AWS::AccountId}-${AWS::Region}"
+            - Name: DATABASE_HOST
+              Value: !GetAtt RDS.Endpoint.Address
+            - Name: DATABASE_PORT
+              Value: "5432"
+            - Name: DATABASE_USER
+              Value: !Ref DatabaseUsername
+            - Name: DATABASE_NAME
+              Value: !Ref DatabaseName
+            - Name: APP_URL
+              Value: !Ref AppURL
+            - Name: PORTAL_URL
+              Value: !Ref AppURL
+            - Name: PRODUCTION_URL
+              Value: !Ref AppURL
+            - Name: DEFAULT_FROM_EMAIL
+              Value: !Ref DefaultFromEmail
+            - Name: EMAIL_BACKEND
+              Value: django.core.mail.backends.smtp.EmailBackend
+            - Name: EMAIL_HOST
+              Value: smtp.sendgrid.net
+            - Name: EMAIL_PORT
+              Value: "587"
+            - Name: EMAIL_USE_TLS
+              Value: "true"
+            - Name: EMAIL_HOST_USER
+              Value: apikey
+            # Keycloak (non-secret)
+            - Name: KEYCLOAK_ISSUER
+              Value: !Ref KeycloakIssuer
+            - Name: KEYCLOAK_CLIENT_ID
+              Value: !Ref KeycloakClientId
+            - Name: KEYCLOAK_REDIRECT_URI
+              Value: !Sub "${AppURL}/api/auth/callback"
+            - Name: KEYCLOAK_ADMIN_USERNAME
+              Value: !Ref KeycloakAdminUsername
+            - Name: KEYCLOAK_URL
+              Value: "https://sso.startupvarsity.com"
+            - Name: KEYCLOAK_REALM
+              Value: startupvarsity
+            - Name: ENABLE_SSO
+              Value: "true"
+            - Name: ALLOW_LEGACY_LOGIN
+              Value: "true"
+            - Name: AUTO_MIGRATE_USERS
+              Value: "true"
+            # Session
+            - Name: SESSION_SECURE
+              Value: "true"
+            - Name: SESSION_MAX_AGE
+              Value: "86400000"
+            # Razorpay (non-secret key ID)
+            - Name: RAZORPAY_KEY_ID
+              Value: !Ref RazorpayKeyId
+            # Payment config
+            - Name: DEFAULT_REGISTRATION_FEE
+              Value: "10000"
+            - Name: MAX_PAYMENT_AMOUNT
+              Value: "400000"
+            - Name: MIN_PAYMENT_AMOUNT
+              Value: "1"
+            - Name: PAYMENT_RETRY_LIMIT
+              Value: "2"
+            - Name: PAYMENT_RETRY_COOLDOWN
+              Value: "3600"
+            - Name: OFFER_EXPIRY_HOURS
+              Value: "24"
+            # GST / Company
+            - Name: GST_RATE
+              Value: "18"
+            - Name: GST_INCLUSIVE
+              Value: "true"
+            - Name: COMPANY_NAME
+              Value: StartupVarsity
+            - Name: COMPANY_ADDRESS
+              Value: India
+            - Name: COMPANY_PHONE
+              Value: "8045888899"
+            - Name: COMPANY_EMAIL
+              Value: hello@startupvarsity.com
+            # Moodle LMS
+            - Name: MOODLE_BASE_URL
+              Value: "https://learn.rooman.com"
+            - Name: MOODLE_OAUTH2_START_URL
+              Value: "https://learn.rooman.com/auth/oauth2/"
+            - Name: MOODLE_CLIENT_ID
+              Value: moodle-rooman
+            - Name: MOODLE_REDIRECT_URI
+              Value: "https://learn.rooman.com/admin/oauth2callback.php"
+            - Name: MOODLE_WEB_ORIGIN
+              Value: "https://learn.rooman.com"
+            # Google Calendar (non-secret)
+            - Name: GOOGLE_CALENDAR_CLIENT_ID
+              Value: !Ref GoogleCalendarClientId
+            - Name: GOOGLE_CALENDAR_ID
+              Value: !Ref GoogleCalendarId
+            # Misc
+            - Name: NODE_TLS_REJECT_UNAUTHORIZED
+              Value: "0"
+
+          # ── Secrets from Secrets Manager ──
+          Secrets:
+            - Name: DATABASE_URL
+              ValueFrom: !Ref DatabaseURLSecret
+            - Name: DATABASE_PASSWORD
+              ValueFrom: !Ref DBPasswordSecret
+            - Name: SESSION_SECRET
+              ValueFrom: !Ref SessionSecretSecret
+            - Name: SENDGRID_API_KEY
+              ValueFrom: !Ref SendGridAPIKeySecret
+            - Name: EMAIL_HOST_PASSWORD
+              ValueFrom: !Ref SendGridAPIKeySecret
+            - Name: KEYCLOAK_CLIENT_SECRET
+              ValueFrom: !Ref KeycloakClientSecretSecret
+            - Name: KEYCLOAK_ADMIN_PASSWORD
+              ValueFrom: !Ref KeycloakAdminPasswordSecret
+            - Name: RAZORPAY_KEY_SECRET
+              ValueFrom: !Ref RazorpayKeySecretSecret
+            - Name: RAZORPAY_WEBHOOK_SECRET
+              ValueFrom: !Ref RazorpayWebhookSecretSecret
+            - Name: OPENAI_API_KEY
+              ValueFrom: !Ref OpenAIAPIKeySecret
+            - Name: GOOGLE_CALENDAR_CLIENT_SECRET
+              ValueFrom: !Ref GoogleCalendarClientSecretSecret
+            - Name: GOOGLE_CALENDAR_REFRESH_TOKEN
+              ValueFrom: !Ref GoogleCalendarRefreshTokenSecret
+
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref AppLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: app
+
+          HealthCheck:
+            Command: [CMD-SHELL, "curl -f http://localhost:8080/health || exit 1"]
+            Interval: 30
+            Timeout: 10
+            Retries: 3
+            StartPeriod: 90
+
+# ─────────────────────────────────────────────────────────────
+# ECS SERVICE
+# DesiredCount=0 — push image to ECR first, then update to 1
+# ─────────────────────────────────────────────────────────────
+  AppService:
+    Type: AWS::ECS::Service
+    DependsOn: HTTPListener
+    Properties:
+      ServiceName: startupvarsity-prod-service
+      Cluster: !Ref Cluster
+      TaskDefinition: !Ref AppTask
+      DesiredCount: 0
+      LaunchType: FARGATE
+      PlatformVersion: LATEST
+      EnableExecuteCommand: true
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            - !Ref PrivateSubnetA
+            - !Ref PrivateSubnetB
+          SecurityGroups:
+            - !Ref AppECSSG
+      LoadBalancers:
+        - ContainerName: app
+          ContainerPort: 8080
+          TargetGroupArn: !Ref AppTG
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+      Tags:
+        - Key: Name
+          Value: startupvarsity-prod-service
+
+# ─────────────────────────────────────────────────────────────
+# AUTO SCALING
+# Min=0 initially. After first successful deploy, set MinCapacity=1.
+# ─────────────────────────────────────────────────────────────
+  AppScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      ServiceNamespace: ecs
+      ResourceId: !Sub "service/${Cluster}/${AppService.Name}"
+      ScalableDimension: ecs:service:DesiredCount
+      MinCapacity: 0
+      MaxCapacity: 4
+      RoleARN: !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService"
+
+  AppCPUScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: startupvarsity-prod-cpu-scaling
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref AppScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        TargetValue: 70.0
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 60
+
+  AppMemoryScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: startupvarsity-prod-memory-scaling
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref AppScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageMemoryUtilization
+        TargetValue: 80.0
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 60
+
+# ─────────────────────────────────────────────────────────────
+# CLOUDWATCH ALARMS
+# ─────────────────────────────────────────────────────────────
+  ALBHighResponseTimeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: startupvarsity-prod-alb-high-response-time
+      AlarmDescription: ALB average response time > 5 seconds
+      MetricName: TargetResponseTime
+      Namespace: AWS/ApplicationELB
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !GetAtt ALB.LoadBalancerFullName
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 2
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+  ALB5xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: startupvarsity-prod-alb-5xx-errors
+      AlarmDescription: ALB backend 5xx errors > 10 in 5 minutes
+      MetricName: HTTPCode_Target_5XX_Count
+      Namespace: AWS/ApplicationELB
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !GetAtt ALB.LoadBalancerFullName
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+  RDSHighCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: startupvarsity-prod-rds-high-cpu
+      AlarmDescription: RDS CPU > 80% for 5 minutes
+      MetricName: CPUUtilization
+      Namespace: AWS/RDS
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref RDS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+# ═══════════════════════════════════════════════════════════════
+# OUTPUTS
+# ═══════════════════════════════════════════════════════════════
+Outputs:
+  ALBDNS:
+    Description: ALB DNS — set as CNAME for www.startupvarsity.com
+    Value: !Sub "http://${ALB.DNSName}"
+    Export:
+      Name: StartupVarsityProdALBDNS
+
+  ALBHostedZoneId:
+    Description: ALB Hosted Zone ID (for Route53 Alias record)
+    Value: !GetAtt ALB.CanonicalHostedZoneID
+    Export:
+      Name: StartupVarsityProdALBHostedZoneId
+
+  ECRRepositoryURI:
+    Description: ECR URI — use in CI/CD to push image
+    Value: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/startupvarsity-prod"
+    Export:
+      Name: StartupVarsityProdECRURI
+
+  ClusterName:
+    Description: ECS cluster name
+    Value: !Ref Cluster
+    Export:
+      Name: StartupVarsityProdClusterName
+
+  ServiceName:
+    Description: ECS service name
+    Value: !GetAtt AppService.Name
+    Export:
+      Name: StartupVarsityProdServiceName
+
+  RDSEndpoint:
+    Description: RDS endpoint (private — accessible only from ECS tasks)
+    Value: !GetAtt RDS.Endpoint.Address
+    Export:
+      Name: StartupVarsityProdRDSEndpoint
+
+  S3BucketName:
+    Description: S3 bucket for media/file storage
+    Value: !Ref S3Bucket
+    Export:
+      Name: StartupVarsityProdS3Bucket
+
+  GitHubActionsRoleARN:  
+    Description: IAM role ARN — set as AWS_ROLE_ARN secret in GitHub Actions
+    Value: !GetAtt GitHubActionsRole.Arn
+    Export:
+      Name: StartupVarsityProdGitHubActionsRoleARN
+
+  VPCId:
+    Description: VPC ID
+    Value: !Ref VPC
+    Export:
+      Name: StartupVarsityProdVPCId
+
+  NATGatewayIP:
+    Description: NAT Gateway EIP — outbound IP of all ECS tasks (whitelist with Razorpay/SendGrid if needed)
+    Value: !Ref NATElasticIP
+    Export:
+      Name: StartupVarsityProdNATGatewayIP

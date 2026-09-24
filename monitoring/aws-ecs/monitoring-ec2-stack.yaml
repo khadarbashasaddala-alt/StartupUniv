@@ -1,0 +1,326 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Monitoring Instance (t3.micro) - Prometheus + Grafana for Dev ECS'
+
+# =============================================================================
+# Prometheus scrapes your API /metrics through the ALB (public).
+# No need to poke holes into ECS security groups.
+#
+# Deploy:
+#   aws cloudformation deploy \
+#     --template-file monitoring/aws-ecs/monitoring-ec2-stack.yaml \
+#     --stack-name dev-monitoring \
+#     --region ap-south-1 \
+#     --capabilities CAPABILITY_IAM \
+#     --parameter-overrides \
+#       VpcId=vpc-XXXXXXXX \
+#       PublicSubnetId=subnet-XXXXXXXX \
+#       ALBDNSName=dev-alb-123456.ap-south-1.elb.amazonaws.com
+#
+# Get values from main stack:
+#   aws cloudformation describe-stacks --stack-name dev-ecs-infrastructure \
+#     --query "Stacks[0].Outputs" --output table
+#
+# Access Grafana: http://<OutputGrafanaURL>  (admin / admin)
+# =============================================================================
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: dev
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID from main ECS stack output
+
+  PublicSubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Any public subnet from main ECS stack
+
+  ALBDNSName:
+    Type: String
+    Description: ALB DNS name from main ECS stack output (LoadBalancerDNS)
+
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues:
+      - t3.micro
+      - t3.small
+    Description: t3.micro (1GB) fits Prometheus+Grafana. t3.small (2GB) adds headroom.
+
+  KeyPairName:
+    Type: String
+    Default: ""
+    Description: EC2 Key Pair for SSH (leave empty to disable SSH access)
+
+Conditions:
+  HasKeyPair: !Not
+    - !Equals
+      - !Ref KeyPairName
+      - ""
+
+Mappings:
+  AMIMap:
+    ap-south-1:
+      AMI: ami-0c95fa15b20f5400e
+
+Resources:
+  # ==========================================================================
+  # SECURITY GROUP
+  # ==========================================================================
+  MonitoringSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${EnvironmentName}-monitoring-sg"
+      GroupDescription: Monitoring instance - Grafana + Prometheus
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3001
+          ToPort: 3001
+          CidrIp: 0.0.0.0/0
+          Description: Grafana UI
+        - IpProtocol: tcp
+          FromPort: 9090
+          ToPort: 9090
+          CidrIp: 0.0.0.0/0
+          Description: Prometheus UI
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+          Description: All outbound
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-monitoring-sg"
+
+  # ==========================================================================
+  # IAM ROLE - CloudWatch read + ECS describe (for Grafana CloudWatch plugin)
+  # ==========================================================================
+  MonitoringRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${EnvironmentName}-monitoring-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  MonitoringInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref MonitoringRole
+
+  # ==========================================================================
+  # EC2 INSTANCE
+  # ==========================================================================
+  MonitoringInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !FindInMap
+        - AMIMap
+        - !Ref "AWS::Region"
+        - AMI
+      SubnetId: !Ref PublicSubnetId
+      SecurityGroupIds:
+        - !Ref MonitoringSG
+      IamInstanceProfile: !Ref MonitoringInstanceProfile
+      KeyName: !If
+        - HasKeyPair
+        - !Ref KeyPairName
+        - !Ref "AWS::NoValue"
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-monitoring"
+        - Key: Environment
+          Value: !Ref EnvironmentName
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euxo pipefail
+          exec > /var/log/user-data.log 2>&1
+
+          # ---- Install Docker ----
+          dnf update -y
+          dnf install -y docker
+          systemctl enable docker && systemctl start docker
+          usermod -aG docker ec2-user
+
+          # ---- Install Docker Compose ----
+          curl -SL "https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-linux-x86_64" \
+            -o /usr/local/bin/docker-compose
+          chmod +x /usr/local/bin/docker-compose
+
+          # ---- Create directories ----
+          mkdir -p /opt/monitoring/{prometheus,grafana/provisioning/datasources,grafana/provisioning/dashboards,grafana/dashboards}
+
+          # ---- Prometheus config ----
+          cat > /opt/monitoring/prometheus/prometheus.yml << 'EOF'
+          global:
+            scrape_interval: 15s
+            evaluation_interval: 15s
+
+          scrape_configs:
+            - job_name: prometheus
+              static_configs:
+                - targets: ["localhost:9090"]
+
+            - job_name: backend-api
+              metrics_path: /metrics
+              scrape_interval: 15s
+              scrape_timeout: 10s
+              static_configs:
+                - targets: ["${ALBDNSName}"]
+                  labels:
+                    service: api
+                    environment: dev
+
+            - job_name: backend-api-health
+              metrics_path: /health
+              scrape_interval: 30s
+              scrape_timeout: 10s
+              static_configs:
+                - targets: ["${ALBDNSName}"]
+                  labels:
+                    service: api-health
+          EOF
+
+          # ---- Grafana datasources ----
+          cat > /opt/monitoring/grafana/provisioning/datasources/datasources.yml << 'EOF'
+          apiVersion: 1
+          datasources:
+            - name: Prometheus
+              type: prometheus
+              access: proxy
+              url: http://prometheus:9090
+              isDefault: true
+            - name: CloudWatch
+              type: cloudwatch
+              access: proxy
+              jsonData:
+                authType: default
+                defaultRegion: ${AWS::Region}
+          EOF
+
+          # ---- Grafana dashboard provider ----
+          cat > /opt/monitoring/grafana/provisioning/dashboards/dashboards.yml << 'EOF'
+          apiVersion: 1
+          providers:
+            - name: CRM VoiceAgent
+              orgId: 1
+              folder: CRM VoiceAgent
+              type: file
+              options:
+                path: /var/lib/grafana/dashboards
+          EOF
+
+          # ---- Docker Compose ----
+          cat > /opt/monitoring/docker-compose.yml << 'EOF'
+          version: "3.8"
+          services:
+            prometheus:
+              image: prom/prometheus:v2.51.0
+              container_name: prometheus
+              restart: always
+              ports:
+                - "9090:9090"
+              volumes:
+                - /opt/monitoring/prometheus:/etc/prometheus:ro
+                - prometheus_data:/prometheus
+              command:
+                - "--config.file=/etc/prometheus/prometheus.yml"
+                - "--storage.tsdb.path=/prometheus"
+                - "--storage.tsdb.retention.time=7d"
+                - "--web.enable-lifecycle"
+              deploy:
+                resources:
+                  limits:
+                    memory: 350M
+
+            grafana:
+              image: grafana/grafana:10.4.1
+              container_name: grafana
+              restart: always
+              ports:
+                - "3001:3000"
+              environment:
+                - GF_SECURITY_ADMIN_USER=admin
+                - GF_SECURITY_ADMIN_PASSWORD=admin
+                - GF_USERS_ALLOW_SIGN_UP=false
+              volumes:
+                - grafana_data:/var/lib/grafana
+                - /opt/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+                - /opt/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+              depends_on:
+                - prometheus
+              deploy:
+                resources:
+                  limits:
+                    memory: 350M
+
+          volumes:
+            prometheus_data:
+            grafana_data:
+          EOF
+
+          # ---- Start ----
+          cd /opt/monitoring
+          docker-compose up -d
+
+          echo "=== Monitoring stack started ==="
+          echo "Grafana: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):3001"
+
+  # ==========================================================================
+  # ELASTIC IP (stable URL across instance restarts)
+  # ==========================================================================
+  MonitoringEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-monitoring-eip"
+
+  EIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt MonitoringEIP.AllocationId
+      InstanceId: !Ref MonitoringInstance
+
+Outputs:
+  GrafanaURL:
+    Description: Grafana Dashboard (admin/admin)
+    Value: !Sub "http://${MonitoringEIP}:3001"
+
+  PrometheusURL:
+    Description: Prometheus UI
+    Value: !Sub "http://${MonitoringEIP}:9090"
+
+  MonitoringPublicIP:
+    Description: Monitoring instance Elastic IP
+    Value: !Ref MonitoringEIP
+
+  MonitoringInstanceId:
+    Description: EC2 Instance ID (for SSM Session Manager)
+    Value: !Ref MonitoringInstance
+
+  SSHCommand:
+    Description: SSH command (if key pair provided)
+    Value: !Sub "ssh -i ${KeyPairName}.pem ec2-user@${MonitoringEIP}"

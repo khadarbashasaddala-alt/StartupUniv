@@ -1,0 +1,297 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudWatch Alarms for CRM VoiceAgent Dev ECS'
+
+# Deploy: aws cloudformation deploy --template-file cloudwatch-alarms.yaml \
+#           --stack-name dev-monitoring-alarms --region ap-south-1
+
+Parameters:
+  ClusterName:
+    Type: String
+    Default: crm-voiceagent-dev-ecs
+
+  ApiServiceName:
+    Type: String
+    Default: crm-voiceagent-api-dev
+
+  VoiceAgentServiceName:
+    Type: String
+    Default: crm-voiceagent-voice-agent-dev
+
+  # Optional: SNS topic ARN for email alerts
+  # AlarmSNSTopic:
+  #   Type: String
+  #   Default: ""
+
+Resources:
+  # =========================================================================
+  # API Service Alarms
+  # =========================================================================
+  ApiHighCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: dev-api-high-cpu
+      AlarmDescription: "API service CPU utilization > 80% for 5 minutes"
+      Namespace: AWS/ECS
+      MetricName: CPUUtilization
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref ClusterName
+        - Name: ServiceName
+          Value: !Ref ApiServiceName
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+  ApiHighMemoryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: dev-api-high-memory
+      AlarmDescription: "API service memory utilization > 80% for 5 minutes"
+      Namespace: AWS/ECS
+      MetricName: MemoryUtilization
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref ClusterName
+        - Name: ServiceName
+          Value: !Ref ApiServiceName
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+  # =========================================================================
+  # Voice Agent Service Alarms
+  # =========================================================================
+  VoiceAgentHighCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: dev-voice-agent-high-cpu
+      AlarmDescription: "Voice agent CPU > 80% for 5 minutes"
+      Namespace: AWS/ECS
+      MetricName: CPUUtilization
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref ClusterName
+        - Name: ServiceName
+          Value: !Ref VoiceAgentServiceName
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+
+  VoiceAgentHighMemoryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: dev-voice-agent-high-memory
+      AlarmDescription: "Voice agent memory > 85% for 5 minutes"
+      Namespace: AWS/ECS
+      MetricName: MemoryUtilization
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref ClusterName
+        - Name: ServiceName
+          Value: !Ref VoiceAgentServiceName
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 85
+      ComparisonOperator: GreaterThanThreshold
+
+  # =========================================================================
+  # EC2 Host Alarms
+  # =========================================================================
+  HostHighCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: dev-ecs-host-high-cpu
+      AlarmDescription: "ECS host EC2 CPU > 85% for 5 minutes"
+      Namespace: AWS/EC2
+      MetricName: CPUUtilization
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 85
+      ComparisonOperator: GreaterThanThreshold
+
+  # =========================================================================
+  # RDS Alarms
+  # =========================================================================
+  RDSHighCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: dev-rds-high-cpu
+      AlarmDescription: "RDS CPU > 80% for 10 minutes"
+      Namespace: AWS/RDS
+      MetricName: CPUUtilization
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: dev-crm-voiceagent-db
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+
+  RDSLowFreeStorageAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: dev-rds-low-storage
+      AlarmDescription: "RDS free storage below 2GB"
+      Namespace: AWS/RDS
+      MetricName: FreeStorageSpace
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: dev-crm-voiceagent-db
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 2147483648  # 2 GB in bytes
+      ComparisonOperator: LessThanThreshold
+
+  RDSHighConnectionsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: dev-rds-high-connections
+      AlarmDescription: "RDS connections > 50 (db.t3.micro max is ~85)"
+      Namespace: AWS/RDS
+      MetricName: DatabaseConnections
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: dev-crm-voiceagent-db
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 50
+      ComparisonOperator: GreaterThanThreshold
+
+  # =========================================================================
+  # CloudWatch Dashboard
+  # =========================================================================
+  MonitoringDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: CRM-VoiceAgent-Dev
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "text",
+              "x": 0, "y": 0, "width": 24, "height": 1,
+              "properties": { "markdown": "# CRM VoiceAgent - Dev Environment" }
+            },
+            {
+              "type": "metric",
+              "x": 0, "y": 1, "width": 12, "height": 6,
+              "properties": {
+                "title": "ECS Service CPU Utilization",
+                "metrics": [
+                  ["AWS/ECS", "CPUUtilization", "ClusterName", "${ClusterName}", "ServiceName", "${ApiServiceName}", {"label": "API"}],
+                  ["AWS/ECS", "CPUUtilization", "ClusterName", "${ClusterName}", "ServiceName", "${VoiceAgentServiceName}", {"label": "Voice Agent"}]
+                ],
+                "period": 300,
+                "stat": "Average",
+                "region": "${AWS::Region}",
+                "view": "timeSeries"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12, "y": 1, "width": 12, "height": 6,
+              "properties": {
+                "title": "ECS Service Memory Utilization",
+                "metrics": [
+                  ["AWS/ECS", "MemoryUtilization", "ClusterName", "${ClusterName}", "ServiceName", "${ApiServiceName}", {"label": "API"}],
+                  ["AWS/ECS", "MemoryUtilization", "ClusterName", "${ClusterName}", "ServiceName", "${VoiceAgentServiceName}", {"label": "Voice Agent"}]
+                ],
+                "period": 300,
+                "stat": "Average",
+                "region": "${AWS::Region}",
+                "view": "timeSeries"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0, "y": 7, "width": 8, "height": 6,
+              "properties": {
+                "title": "RDS CPU",
+                "metrics": [
+                  ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", "dev-crm-voiceagent-db"]
+                ],
+                "period": 300,
+                "stat": "Average",
+                "region": "${AWS::Region}",
+                "view": "timeSeries"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 8, "y": 7, "width": 8, "height": 6,
+              "properties": {
+                "title": "RDS Connections",
+                "metrics": [
+                  ["AWS/RDS", "DatabaseConnections", "DBInstanceIdentifier", "dev-crm-voiceagent-db"]
+                ],
+                "period": 300,
+                "stat": "Average",
+                "region": "${AWS::Region}",
+                "view": "timeSeries"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 16, "y": 7, "width": 8, "height": 6,
+              "properties": {
+                "title": "RDS Free Storage (GB)",
+                "metrics": [
+                  ["AWS/RDS", "FreeStorageSpace", "DBInstanceIdentifier", "dev-crm-voiceagent-db", {"label": "Free Storage"}]
+                ],
+                "period": 300,
+                "stat": "Average",
+                "region": "${AWS::Region}",
+                "view": "timeSeries",
+                "yAxis": { "left": { "label": "Bytes" } }
+              }
+            },
+            {
+              "type": "log",
+              "x": 0, "y": 13, "width": 12, "height": 6,
+              "properties": {
+                "title": "API Logs (Errors)",
+                "query": "SOURCE '/ecs/dev/api' | filter @message like /ERROR|CRITICAL|Exception|Traceback/ | sort @timestamp desc | limit 50",
+                "region": "${AWS::Region}",
+                "view": "table"
+              }
+            },
+            {
+              "type": "log",
+              "x": 12, "y": 13, "width": 12, "height": 6,
+              "properties": {
+                "title": "Voice Agent Logs (Errors)",
+                "query": "SOURCE '/ecs/dev/voice-agent' | filter @message like /ERROR|CRITICAL|Exception|Traceback/ | sort @timestamp desc | limit 50",
+                "region": "${AWS::Region}",
+                "view": "table"
+              }
+            },
+            {
+              "type": "log",
+              "x": 0, "y": 19, "width": 24, "height": 6,
+              "properties": {
+                "title": "All Service Logs (Last 30 min)",
+                "query": "SOURCE '/ecs/dev/api' | SOURCE '/ecs/dev/voice-agent' | SOURCE '/ecs/dev/frontend' | sort @timestamp desc | limit 100",
+                "region": "${AWS::Region}",
+                "view": "table"
+              }
+            }
+          ]
+        }
+
+Outputs:
+  DashboardURL:
+    Description: CloudWatch Dashboard URL
+    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=CRM-VoiceAgent-Dev"

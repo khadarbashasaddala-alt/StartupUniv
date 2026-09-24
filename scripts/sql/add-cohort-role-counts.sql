@@ -1,0 +1,5 @@
+-- Planned headcount per role for a cohort
+ALTER TABLE cohorts ADD COLUMN IF NOT EXISTS mentor_count INTEGER DEFAULT 0;
+ALTER TABLE cohorts ADD COLUMN IF NOT EXISTS founder_count INTEGER DEFAULT 0;
+ALTER TABLE cohorts ADD COLUMN IF NOT EXISTS cofounder_count INTEGER DEFAULT 0;
+ALTER TABLE cohorts ADD COLUMN IF NOT EXISTS learner_count INTEGER DEFAULT 0;

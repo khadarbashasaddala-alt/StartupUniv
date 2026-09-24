@@ -1,0 +1,1001 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'StartupVarsity Portal - EC2 Deployment with RDS PostgreSQL, S3, ALB'
+
+# =============================================================================
+# TARGET AWS ACCOUNT: 011266921462 (ap-south-1)
+#
+# DEPLOY COMMAND (first time):
+#   aws cloudformation create-stack \
+#     --stack-name startupvarsity-portal-stack \
+#     --template-body file://infrastructure/aws/aws-ec2-cloudformation.yaml \
+#     --parameters \
+#       ParameterKey=DatabasePassword,ParameterValue=<YOUR_DB_PASSWORD> \
+#       ParameterKey=KeyPairName,ParameterValue=<YOUR_KEY_PAIR> \
+#     --capabilities CAPABILITY_NAMED_IAM \
+#     --region ap-south-1
+#
+# After stack creates:
+#   1. Get GitHubActionsRoleARN from Outputs → set as AWS_ROLE_ARN secret in GitHub
+#   2. Get EC2InstanceId from Outputs → set as EC2_INSTANCE_ID secret in GitHub
+#   3. Push code to main → GitHub Actions will build image + deploy to EC2
+#   4. Set real secrets via GitHub Actions secrets (SENDGRID_API_KEY, RAZORPAY_*, etc.)
+# =============================================================================
+
+Parameters:
+  AppName:
+    Type: String
+    Default: startupvarsity-portal
+    Description: Application name (used as prefix for all resources)
+
+  DatabaseUsername:
+    Type: String
+    Default: postgres
+    Description: RDS master username
+
+  DatabasePassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    Description: RDS master password (min 8 characters)
+
+  EC2InstanceType:
+    Type: String
+    Default: t3a.small
+    AllowedValues:
+      - t3a.small
+      - t3a.medium
+      - t3a.large
+    Description: EC2 instance type (t3a.small = 2vCPU/2GB, t3a.medium = 2vCPU/4GB)
+
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: EC2 Key Pair name for SSH access
+
+  ACMCertificateArn:
+    Type: String
+    Default: ''
+    Description: >
+      ACM Certificate ARN for HTTPS (e.g. arn:aws:acm:ap-south-1:ACCOUNT:certificate/xxxx).
+      Leave empty to keep HTTP-only. After requesting a cert in ACM and validating it,
+      update the stack with this value to enable HTTPS + HTTP→HTTPS redirect.
+
+  ContainerPort:
+    Type: Number
+    Default: 8080
+    Description: Port the Node.js app listens on inside Docker
+
+  GitHubOrg:
+    Type: String
+    Default: Rooman-R-D
+    Description: GitHub organization name (for OIDC trust policy)
+
+  GitHubRepo:
+    Type: String
+    Default: StartUpVarsity
+    Description: GitHub repository name (for OIDC trust policy)
+
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+    Description: Amazon Linux 2023 AMI (auto-resolved via SSM)
+
+# =============================================================================
+# CONDITIONS
+# =============================================================================
+Conditions:
+  HasACMCertificate: !Not [!Equals [!Ref ACMCertificateArn, '']]
+
+# =============================================================================
+# RESOURCES
+# =============================================================================
+Resources:
+
+  # ---------------------------------------------------------------------------
+  # VPC & NETWORKING
+  # ---------------------------------------------------------------------------
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-vpc'
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-public-1'
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [1, !GetAZs '']
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-public-2'
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: 10.0.3.0/24
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-private-1'
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [1, !GetAZs '']
+      CidrBlock: 10.0.4.0/24
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-private-2'
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-igw'
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-public-routes'
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet1
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet2
+
+  # ---------------------------------------------------------------------------
+  # SECURITY GROUPS
+  # ---------------------------------------------------------------------------
+
+  # ALB: accepts HTTP/HTTPS from internet
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${AppName}-alb-sg'
+      GroupDescription: Security group for Application Load Balancer
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP from internet
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS from internet
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-alb-sg'
+
+  # EC2: accepts app traffic from ALB + SSH
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${AppName}-ec2-sg'
+      GroupDescription: Security group for EC2 instance
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref ContainerPort
+          ToPort: !Ref ContainerPort
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+          Description: App traffic from ALB only
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH (restrict to your IP after setup)
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-ec2-sg'
+
+  # RDS: accepts Postgres from EC2 + GitHub Actions IP ranges
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${AppName}-rds-sg'
+      GroupDescription: Security group for RDS PostgreSQL
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref EC2SecurityGroup
+          Description: PostgreSQL from EC2
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 4.148.0.0/14
+          Description: GitHub Actions - Azure US East
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 13.64.0.0/11
+          Description: GitHub Actions - Azure
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 20.0.0.0/8
+          Description: GitHub Actions - Azure Global
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 40.64.0.0/10
+          Description: GitHub Actions - Azure Global 2
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 52.160.0.0/11
+          Description: GitHub Actions - Azure US
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 52.224.0.0/11
+          Description: GitHub Actions - Azure US East
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 104.40.0.0/13
+          Description: GitHub Actions - Azure
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 168.61.0.0/16
+          Description: GitHub Actions - Azure
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 191.232.0.0/13
+          Description: GitHub Actions - Azure Global
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-rds-sg'
+
+  # ---------------------------------------------------------------------------
+  # S3 BUCKET (file storage: CVs, evidence, avatars)
+  # ---------------------------------------------------------------------------
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AppName}-files-${AWS::AccountId}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, PUT, POST, DELETE, HEAD]
+            AllowedOrigins: ['*']
+            MaxAge: 3000
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-files'
+
+  # ---------------------------------------------------------------------------
+  # ECR REPOSITORY (Docker image registry)
+  # ---------------------------------------------------------------------------
+  ECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref AppName
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: MUTABLE
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep last 5 images, expire older ones",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+                },
+                "action": { "type": "expire" }
+              }
+            ]
+          }
+      Tags:
+        - Key: Name
+          Value: !Ref AppName
+
+  # ---------------------------------------------------------------------------
+  # RDS POSTGRESQL DATABASE
+  # ---------------------------------------------------------------------------
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: !Sub '${AppName}-db-subnet-group'
+      DBSubnetGroupDescription: Subnet group for RDS
+      SubnetIds:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-db-subnet-group'
+
+  RDSDatabase:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: !Sub '${AppName}-db'
+      Engine: postgres
+      EngineVersion: '15.10'
+      DBInstanceClass: db.t3.small
+      AllocatedStorage: 50
+      StorageType: gp3
+      MasterUsername: !Ref DatabaseUsername
+      MasterUserPassword: !Ref DatabasePassword
+      DBName: startupvarsity
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      BackupRetentionPeriod: 7
+      MultiAZ: false
+      PubliclyAccessible: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-db'
+
+  # ---------------------------------------------------------------------------
+  # SECRETS MANAGER
+  # ---------------------------------------------------------------------------
+
+  DatabaseURLSecret:
+    Type: AWS::SecretsManager::Secret
+    DependsOn: RDSDatabase
+    Properties:
+      Name: !Sub '${AppName}/DATABASE_URL'
+      Description: PostgreSQL connection string (auto-built from RDS endpoint)
+      SecretString: !Sub 'postgresql://${DatabaseUsername}:${DatabasePassword}@${RDSDatabase.Endpoint.Address}:5432/startupvarsity?sslmode=require'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}/DATABASE_URL'
+
+  SessionSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AppName}/SESSION_SECRET'
+      Description: Express session secret (auto-generated)
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: secret
+        ExcludeCharacters: '"@/\'
+        PasswordLength: 32
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}/SESSION_SECRET'
+
+  # Set real values via GitHub Actions secrets (SENDGRID_API_KEY repo secret)
+  SendGridApiKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AppName}/SENDGRID_API_KEY'
+      Description: SendGrid API key for email (hello@startupvarsity.com)
+      SecretString: 'REPLACE_ME'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}/SENDGRID_API_KEY'
+
+  # Set real values via GitHub Actions secrets
+  GoogleCalendarClientIdSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AppName}/GOOGLE_CALENDAR_CLIENT_ID'
+      Description: Google OAuth2 Client ID for Calendar API
+      SecretString: 'REPLACE_ME'
+
+  GoogleCalendarClientSecretSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AppName}/GOOGLE_CALENDAR_CLIENT_SECRET'
+      Description: Google OAuth2 Client Secret for Calendar API
+      SecretString: 'REPLACE_ME'
+
+  GoogleCalendarRefreshTokenSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AppName}/GOOGLE_CALENDAR_REFRESH_TOKEN'
+      Description: Google OAuth2 Refresh Token for Calendar API
+      SecretString: 'REPLACE_ME'
+
+  GoogleCalendarIdSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AppName}/GOOGLE_CALENDAR_ID'
+      Description: Google Calendar ID
+      SecretString: 'primary'
+
+  # Set real values via GitHub Actions secrets (RAZORPAY_* and OPENAI_API_KEY repo secrets)
+  RazorpayKeyIdSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AppName}/RAZORPAY_KEY_ID'
+      Description: Razorpay Key ID
+      SecretString: 'REPLACE_ME'
+
+  RazorpayKeySecretSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AppName}/RAZORPAY_KEY_SECRET'
+      Description: Razorpay Key Secret
+      SecretString: 'REPLACE_ME'
+
+  RazorpayWebhookSecretSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AppName}/RAZORPAY_WEBHOOK_SECRET'
+      Description: Razorpay Webhook Secret
+      SecretString: 'REPLACE_ME'
+
+  OpenAIApiKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AppName}/OPENAI_API_KEY'
+      Description: OpenAI API Key
+      SecretString: 'REPLACE_ME'
+
+  # ---------------------------------------------------------------------------
+  # IAM - EC2 INSTANCE ROLE
+  # Grants EC2: ECR pull, S3 access, Secrets Manager read, CloudWatch, SSM
+  # ---------------------------------------------------------------------------
+  EC2InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AppName}-ec2-instance-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Policies:
+        - PolicyName: ECRAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                Resource: '*'
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource: !Sub '${S3Bucket.Arn}/*'
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt S3Bucket.Arn
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                  - secretsmanager:DescribeSecret
+                Resource:
+                  - !Sub '${DatabaseURLSecret}*'
+                  - !Sub '${SessionSecret}*'
+                  - !Sub '${SendGridApiKeySecret}*'
+                  - !Sub '${GoogleCalendarClientIdSecret}*'
+                  - !Sub '${GoogleCalendarClientSecretSecret}*'
+                  - !Sub '${GoogleCalendarRefreshTokenSecret}*'
+                  - !Sub '${GoogleCalendarIdSecret}*'
+                  - !Sub '${RazorpayKeyIdSecret}*'
+                  - !Sub '${RazorpayKeySecretSecret}*'
+                  - !Sub '${RazorpayWebhookSecretSecret}*'
+                  - !Sub '${OpenAIApiKeySecret}*'
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub '${AppName}-ec2-profile'
+      Roles:
+        - !Ref EC2InstanceRole
+
+  # ---------------------------------------------------------------------------
+  # IAM - GITHUB ACTIONS OIDC (no static AWS keys in GitHub)
+  # ---------------------------------------------------------------------------
+  # GitHubOIDCProvider already exists in this account - referencing it directly
+  GitHubActionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'GitHubAction-${AppName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Sub 'arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com'
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              StringLike:
+                token.actions.githubusercontent.com:sub: !Sub 'repo:${GitHubOrg}/${GitHubRepo}:*'
+      Policies:
+        - PolicyName: GitHubActionsDeployPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # ECR: build + push Docker images
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - ecr:PutImage
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                  - ecr:CreateRepository
+                  - ecr:DescribeRepositories
+                Resource: '*'
+              # SSM: run deploy commands on EC2
+              - Effect: Allow
+                Action:
+                  - ssm:SendCommand
+                  - ssm:GetCommandInvocation
+                  - ssm:ListCommandInvocations
+                  - ssm:DescribeInstanceInformation
+                Resource: '*'
+              # Secrets Manager: update API keys via CI
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                  - secretsmanager:PutSecretValue
+                  - secretsmanager:CreateSecret
+                  - secretsmanager:DescribeSecret
+                  - secretsmanager:ListSecrets
+                Resource: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AppName}/*'
+              # EC2: find instance by tag
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeInstances
+                Resource: '*'
+              # STS: verify caller identity
+              - Effect: Allow
+                Action: sts:GetCallerIdentity
+                Resource: '*'
+
+  # ---------------------------------------------------------------------------
+  # CLOUDWATCH LOG GROUP
+  # ---------------------------------------------------------------------------
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/ec2/${AppName}'
+      RetentionInDays: 7
+
+  # ---------------------------------------------------------------------------
+  # APPLICATION LOAD BALANCER
+  # ---------------------------------------------------------------------------
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub '${AppName}-alb'
+      Type: application
+      Scheme: internet-facing
+      Subnets:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+      SecurityGroups:
+        - !Ref ALBSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-alb'
+
+  # TargetType: instance (not ip like ECS)
+  # DependsOn EC2Instance so we can register it as a target
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: EC2Instance
+    Properties:
+      Name: !Sub '${AppName}-tg'
+      Port: !Ref ContainerPort
+      Protocol: HTTP
+      VpcId: !Ref VPC
+      TargetType: instance
+      Targets:
+        - Id: !Ref EC2Instance
+          Port: !Ref ContainerPort
+      HealthCheckPath: /health
+      HealthCheckProtocol: HTTP
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 5
+      Matcher:
+        HttpCode: '200'
+      TargetGroupAttributes:
+        - Key: stickiness.enabled
+          Value: 'true'
+        - Key: stickiness.type
+          Value: lb_cookie
+        - Key: stickiness.lb_cookie.duration_seconds
+          Value: '86400'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-tg'
+
+  # HTTP listener on port 80
+  # When ACMCertificateArn is set: redirects HTTP → HTTPS (301)
+  # When ACMCertificateArn is empty: forwards directly to app (HTTP-only fallback)
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - !If
+          - HasACMCertificate
+          - Type: redirect
+            RedirectConfig:
+              Protocol: HTTPS
+              Port: '443'
+              StatusCode: HTTP_301
+          - Type: forward
+            TargetGroupArn: !Ref TargetGroup
+
+  # HTTPS listener on port 443 (only created when ACMCertificateArn is provided)
+  ALBHTTPSListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: HasACMCertificate
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      SslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+      Certificates:
+        - CertificateArn: !Ref ACMCertificateArn
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  # ---------------------------------------------------------------------------
+  # EC2 INSTANCE
+  # ---------------------------------------------------------------------------
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    DependsOn:
+      - DatabaseURLSecret
+      - SessionSecret
+      - AttachGateway
+    Properties:
+      InstanceType: !Ref EC2InstanceType
+      ImageId: !Ref LatestAmiId
+      KeyName: !Ref KeyPairName
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      SubnetId: !Ref PublicSubnet1
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 30
+            VolumeType: gp3
+            DeleteOnTermination: true
+      Tags:
+        - Key: Name
+          Value: !Ref AppName
+        - Key: Application
+          Value: !Ref AppName
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          exec > /var/log/user-data.log 2>&1
+          echo "=== StartupVarsity EC2 Bootstrap ==="
+          echo "Started: $(date)"
+
+          REGION="${AWS::Region}"
+          ACCOUNT_ID="${AWS::AccountId}"
+          APP_NAME="${AppName}"
+          ECR_REGISTRY="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com"
+          IMAGE="$ECR_REGISTRY/$APP_NAME:latest"
+          S3_BUCKET="${AppName}-files-${AWS::AccountId}"
+
+          # ── System update ──────────────────────────────────────────────────
+          dnf update -y
+
+          # ── Docker ────────────────────────────────────────────────────────
+          dnf install -y docker
+          systemctl enable docker
+          systemctl start docker
+          usermod -aG docker ec2-user
+
+          # ── AWS CLI + utilities ───────────────────────────────────────────
+          # Note: curl-minimal is pre-installed on AL2023, installing curl causes conflict
+          dnf install -y aws-cli jq
+
+          # ── CloudWatch Agent ──────────────────────────────────────────────
+          dnf install -y amazon-cloudwatch-agent
+
+          cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json << 'CWCONFIG'
+          {
+            "logs": {
+              "logs_collected": {
+                "files": {
+                  "collect_list": [
+                    {
+                      "file_path": "/var/log/startupvarsity/deploy.log",
+                      "log_group_name": "/ec2/${AppName}",
+                      "log_stream_name": "deploy",
+                      "timestamp_format": "%Y-%m-%dT%H:%M:%S"
+                    },
+                    {
+                      "file_path": "/var/log/user-data.log",
+                      "log_group_name": "/ec2/${AppName}",
+                      "log_stream_name": "user-data"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+          CWCONFIG
+
+          /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+            -a fetch-config -m ec2 \
+            -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
+
+          # ── App directories ────────────────────────────────────────────────
+          mkdir -p /opt/startupvarsity
+          mkdir -p /var/log/startupvarsity
+
+          # ── Deploy script (also called by GitHub Actions via SSM) ──────────
+          # Uses $REGION etc. set at the top of THIS script (not re-declared below)
+          cat > /opt/startupvarsity/deploy.sh << DEPLOY
+          #!/bin/bash
+          set -e
+          exec >> /var/log/startupvarsity/deploy.log 2>&1
+
+          REGION="$REGION"
+          ACCOUNT_ID="$ACCOUNT_ID"
+          APP_NAME="$APP_NAME"
+          ECR_REGISTRY="$ECR_REGISTRY"
+          IMAGE="$IMAGE"
+          S3_BUCKET="$S3_BUCKET"
+
+          echo ""
+          echo "=== Deploy started: \$(date) ==="
+
+          # Login to ECR
+          echo "Logging into ECR..."
+          aws ecr get-login-password --region "\$REGION" | \
+            docker login --username AWS --password-stdin "\$ECR_REGISTRY"
+
+          # Pull latest image
+          echo "Pulling image: \$IMAGE"
+          docker pull "\$IMAGE"
+
+          # Fetch secrets from Secrets Manager
+          echo "Fetching secrets..."
+          get_secret() {
+            aws secretsmanager get-secret-value \
+              --secret-id "\$1" --region "\$REGION" \
+              --query SecretString --output text 2>/dev/null || echo ""
+          }
+
+          DATABASE_URL=\$(get_secret "\$APP_NAME/DATABASE_URL")
+          SESSION_SECRET=\$(get_secret "\$APP_NAME/SESSION_SECRET")
+          SENDGRID_API_KEY=\$(get_secret "\$APP_NAME/SENDGRID_API_KEY")
+          GOOGLE_CALENDAR_CLIENT_ID=\$(get_secret "\$APP_NAME/GOOGLE_CALENDAR_CLIENT_ID")
+          GOOGLE_CALENDAR_CLIENT_SECRET=\$(get_secret "\$APP_NAME/GOOGLE_CALENDAR_CLIENT_SECRET")
+          GOOGLE_CALENDAR_REFRESH_TOKEN=\$(get_secret "\$APP_NAME/GOOGLE_CALENDAR_REFRESH_TOKEN")
+          GOOGLE_CALENDAR_ID=\$(get_secret "\$APP_NAME/GOOGLE_CALENDAR_ID")
+          RAZORPAY_KEY_ID=\$(get_secret "\$APP_NAME/RAZORPAY_KEY_ID")
+          RAZORPAY_KEY_SECRET=\$(get_secret "\$APP_NAME/RAZORPAY_KEY_SECRET")
+          RAZORPAY_WEBHOOK_SECRET=\$(get_secret "\$APP_NAME/RAZORPAY_WEBHOOK_SECRET")
+          OPENAI_API_KEY=\$(get_secret "\$APP_NAME/OPENAI_API_KEY")
+
+          # Stop existing container
+          echo "Stopping existing container..."
+          docker stop "\$APP_NAME" 2>/dev/null || true
+          docker rm "\$APP_NAME" 2>/dev/null || true
+
+          # Start new container
+          echo "Starting new container..."
+          docker run -d \
+            --name "\$APP_NAME" \
+            --restart unless-stopped \
+            -p 8080:8080 \
+            -p 4001:4001 \
+            -e NODE_ENV=production \
+            -e PORT=8080 \
+            -e AWS_REGION="\$REGION" \
+            -e AWS_S3_BUCKET_NAME="\$S3_BUCKET" \
+            -e PRIVATE_OBJECT_DIR="\$S3_BUCKET/uploads" \
+            -e PUBLIC_OBJECT_SEARCH_PATHS="\$S3_BUCKET/public" \
+            -e DATABASE_URL="\$DATABASE_URL" \
+            -e SESSION_SECRET="\$SESSION_SECRET" \
+            -e SENDGRID_API_KEY="\$SENDGRID_API_KEY" \
+            -e EMAIL_HOST_PASSWORD="\$SENDGRID_API_KEY" \
+            -e EMAIL_FROM="hello@startupvarsity.com" \
+            -e DEFAULT_FROM_EMAIL="hello@startupvarsity.com" \
+            -e GOOGLE_CALENDAR_CLIENT_ID="\$GOOGLE_CALENDAR_CLIENT_ID" \
+            -e GOOGLE_CALENDAR_CLIENT_SECRET="\$GOOGLE_CALENDAR_CLIENT_SECRET" \
+            -e GOOGLE_CALENDAR_REFRESH_TOKEN="\$GOOGLE_CALENDAR_REFRESH_TOKEN" \
+            -e GOOGLE_CALENDAR_ID="\$GOOGLE_CALENDAR_ID" \
+            -e RAZORPAY_KEY_ID="\$RAZORPAY_KEY_ID" \
+            -e RAZORPAY_KEY_SECRET="\$RAZORPAY_KEY_SECRET" \
+            -e RAZORPAY_WEBHOOK_SECRET="\$RAZORPAY_WEBHOOK_SECRET" \
+            -e OPENAI_API_KEY="\$OPENAI_API_KEY" \
+            -e PORTAL_URL="https://www.startupvarsity.com" \
+            -e PAYMENT_PORTAL_URL="https://startupvarsity.rooman.net" \
+            -e BOT_PORT="4001" \
+            -e BOT_SERVICE_URL="http://localhost:4001" \
+            --log-driver awslogs \
+            --log-opt awslogs-region="\$REGION" \
+            --log-opt awslogs-group="/ec2/\$APP_NAME" \
+            --log-opt awslogs-stream="app" \
+            --log-opt awslogs-create-group=true \
+            "\$IMAGE"
+
+          # Health check
+          echo "Waiting for health check..."
+          for i in \$(seq 1 24); do
+            if curl -sf http://localhost:8080/health > /dev/null 2>&1; then
+              echo "App is healthy after \$((i*5))s"
+              break
+            fi
+            echo "  Attempt \$i/24... waiting 5s"
+            sleep 5
+          done
+
+          # Clean up old images to free disk space
+          docker image prune -f
+
+          echo "=== Deploy completed: \$(date) ==="
+          DEPLOY
+
+          chmod +x /opt/startupvarsity/deploy.sh
+
+          # ── Systemd service (auto-restart on reboot) ───────────────────────
+          cat > /etc/systemd/system/startupvarsity.service << 'SERVICE'
+          [Unit]
+          Description=StartupVarsity Portal Container
+          Requires=docker.service
+          After=docker.service network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=oneshot
+          RemainAfterExit=yes
+          ExecStart=/opt/startupvarsity/deploy.sh
+          ExecStop=/usr/bin/docker stop startupvarsity-portal
+          TimeoutStartSec=300
+
+          [Install]
+          WantedBy=multi-user.target
+          SERVICE
+
+          systemctl daemon-reload
+          systemctl enable startupvarsity.service
+
+          # ── Initial deploy (skips gracefully if no image in ECR yet) ───────
+          echo "Attempting initial deploy (may skip if ECR image not yet pushed)..."
+          /opt/startupvarsity/deploy.sh || \
+            echo "Initial deploy skipped - no image in ECR yet. Push via GitHub Actions."
+
+          echo "=== Bootstrap complete: $(date) ==="
+
+
+# =============================================================================
+# OUTPUTS
+# =============================================================================
+Outputs:
+  ApplicationURL:
+    Description: ALB URL (use this or point your domain CNAME here)
+    Value: !If
+      - HasACMCertificate
+      - !GetAtt ApplicationLoadBalancer.DNSName
+      - !Sub 'http://${ApplicationLoadBalancer.DNSName}'
+    Export:
+      Name: !Sub '${AppName}-URL'
+
+  ALBDNSName:
+    Description: ALB DNS Name - point your domain CNAME to this value
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+    Export:
+      Name: !Sub '${AppName}-ALB-DNS'
+
+  EC2InstanceId:
+    Description: EC2 Instance ID - set as EC2_INSTANCE_ID secret in GitHub Actions
+    Value: !Ref EC2Instance
+    Export:
+      Name: !Sub '${AppName}-EC2-ID'
+
+  GitHubActionsRoleARN:
+    Description: IAM Role ARN for GitHub Actions - set as AWS_ROLE_ARN secret in GitHub
+    Value: !GetAtt GitHubActionsRole.Arn
+    Export:
+      Name: !Sub '${AppName}-GitHub-Role'
+
+  ECRRepositoryURI:
+    Description: ECR Repository URI for Docker images
+    Value: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${AppName}'
+    Export:
+      Name: !Sub '${AppName}-ECR-URI'
+
+  DatabaseEndpoint:
+    Description: RDS PostgreSQL endpoint
+    Value: !GetAtt RDSDatabase.Endpoint.Address
+    Export:
+      Name: !Sub '${AppName}-DB-Endpoint'
+
+  S3BucketName:
+    Description: S3 bucket for file storage
+    Value: !Ref S3Bucket
+    Export:
+      Name: !Sub '${AppName}-S3-Bucket'
+
+  DeployScriptPath:
+    Description: Path to deploy script on EC2 (called by GitHub Actions via SSM)
+    Value: /opt/startupvarsity/deploy.sh

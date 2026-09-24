@@ -1,0 +1,102 @@
+# =============================================================================
+# Prometheus Alert Rules
+# =============================================================================
+
+groups:
+  - name: container_alerts
+    rules:
+      # Container is down
+      - alert: ContainerDown
+        expr: absent(container_last_seen{name=~"startupvarsity-portal|startupvarsity-bot"})
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container {{ $labels.name }} is DOWN"
+          description: "Container {{ $labels.name }} has been down for more than 1 minute."
+
+      # High CPU usage (>80%)
+      - alert: HighCPUUsage
+        expr: (rate(container_cpu_usage_seconds_total{name=~"startupvarsity-portal|startupvarsity-bot"}[5m]) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU on {{ $labels.name }}"
+          description: "Container {{ $labels.name }} CPU usage is above 80% for 5 minutes."
+
+      # High Memory usage (>80%)
+      - alert: HighMemoryUsage
+        expr: (container_memory_usage_bytes{name=~"startupvarsity-portal|startupvarsity-bot"} / container_spec_memory_limit_bytes{name=~"startupvarsity-portal|startupvarsity-bot"}) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Memory on {{ $labels.name }}"
+          description: "Container {{ $labels.name }} memory usage is above 80% for 5 minutes."
+
+      # Container restart
+      - alert: ContainerRestarting
+        expr: increase(container_start_time_seconds{name=~"startupvarsity-portal|startupvarsity-bot"}[10m]) > 1
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} is restarting"
+
+  - name: host_alerts
+    rules:
+      # Host CPU > 85%
+      - alert: HostHighCPU
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Host CPU usage above 85%"
+
+      # Host Memory > 85%
+      - alert: HostHighMemory
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Host memory usage above 85%"
+
+      # Disk usage > 80%
+      - alert: HostHighDisk
+        expr: (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Host disk usage above 80%"
+
+  - name: application_alerts
+    rules:
+      # Bot high response time
+      - alert: BotHighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="startupvarsity-bot"}[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Bot p95 latency above 2 seconds"
+
+      # Bot high error rate
+      - alert: BotHighErrorRate
+        expr: (rate(http_requests_total{job="startupvarsity-bot",status=~"5.."}[5m]) / rate(http_requests_total{job="startupvarsity-bot"}[5m])) * 100 > 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Bot error rate above 5%"
+
+      # Bot down (no scrape data)
+      - alert: BotDown
+        expr: up{job="startupvarsity-bot"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "StartupVarsity Bot is DOWN — /metrics unreachable"

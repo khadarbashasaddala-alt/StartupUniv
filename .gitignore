@@ -1,0 +1,102 @@
+# Dependencies
+node_modules
+keycloak-23.0.6/
+.env.backup
+
+# Build outputs
+dist
+build
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.production
+*.env.backup
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+*.claude
+CLAUDE.md
+*.md
+*venv
+# Session/Cookie files
+*.cookies.txt
+*_cookies.txt
+cookies.txt
+admin_cookies.txt
+mentor_cookies.txt
+
+# Local development
+.local/
+.local
+
+# Server files
+server/public
+
+# Vite
+vite.config.ts.*
+.vite/
+
+# Archives
+*.tar.gz
+*.zip
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+/.env
+.env.production.example
+
+# Keycloak installation (binary distribution)
+keycloak-*/
+/keycloak-23.0.6/
+
+sendgrid.env
+
+# Private keys
+*.pem
+*.key
+
+# Python
+.venv/
+**/.venv/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# Private keys - never commit
+*.pem
+*.key
+startupvarsity-key.pem

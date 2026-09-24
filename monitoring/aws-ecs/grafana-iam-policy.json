@@ -1,0 +1,49 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "GrafanaCloudReadCloudWatch",
+            "Effect": "Allow",
+            "Action": [
+                "cloudwatch:DescribeAlarmsForMetric",
+                "cloudwatch:DescribeAlarmHistory",
+                "cloudwatch:DescribeAlarms",
+                "cloudwatch:ListMetrics",
+                "cloudwatch:GetMetricData",
+                "cloudwatch:GetInsightRuleReport"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "GrafanaCloudReadLogs",
+            "Effect": "Allow",
+            "Action": [
+                "logs:DescribeLogGroups",
+                "logs:GetLogGroupFields",
+                "logs:StartQuery",
+                "logs:StopQuery",
+                "logs:GetQueryResults",
+                "logs:GetLogEvents"
+            ],
+            "Resource": [
+                "arn:aws:logs:ap-south-1:*:log-group:/ecs/dev/*",
+                "arn:aws:logs:ap-south-1:*:log-group:/ecs/dev/*:*"
+            ]
+        },
+        {
+            "Sid": "GrafanaCloudDescribeResources",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeTags",
+                "ec2:DescribeInstances",
+                "ec2:DescribeRegions",
+                "tag:GetResources",
+                "ecs:DescribeClusters",
+                "ecs:DescribeServices",
+                "ecs:ListClusters",
+                "ecs:ListServices"
+            ],
+            "Resource": "*"
+        }
+    ]
+}

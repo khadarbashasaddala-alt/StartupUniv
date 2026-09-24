@@ -1,0 +1,78 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+COPY vite.config.ts ./
+COPY tailwind.config.ts ./
+COPY postcss.config.js ./
+COPY drizzle.config.ts ./
+COPY components.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy source files
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Production stage
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install curl for health checks + Python for bot service
+RUN apk add --no-cache curl python3 py3-pip
+
+# Copy package files
+COPY package*.json ./
+
+# Install production dependencies + dev dependencies needed for migrations
+RUN npm ci
+
+# Upgrade the bundled npm CLI. node:20-alpine ships npm 10, whose bundled
+# tar is 6.2.1 -- CVE-2026-59873 (gzip-bomb DoS), flagged CRITICAL by Trivy.
+# npm 11.19.0 bundles tar ^7.5.19, which contains the fix, and still supports
+# node 20 (engines: ^20.17.0 || >=22.9.0). Do NOT use npm@latest -- npm 12
+# requires node 22+ and fails to install here with EBADENGINE.
+# Done after `npm ci` so dependency resolution is unchanged.
+RUN npm install -g npm@11.19.0
+
+# Copy built files from builder
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/shared ./shared
+
+# Copy files needed for migrations
+COPY --from=builder /app/drizzle.config.ts ./
+COPY --from=builder /app/tsconfig.json ./
+COPY --from=builder /app/server ./server
+COPY --from=builder /app/scripts ./scripts
+
+# Install bot Python dependencies
+COPY bot/requirements.txt /app/bot/requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages -r /app/bot/requirements.txt
+
+# Copy bot source
+COPY bot/ /app/bot/
+
+# Expose ports (main app + bot)
+EXPOSE 8080 4001
+
+# Set environment to production
+# Which commit this image was built from. Surfaced at /health so a deploy can be verified
+# rather than assumed; the workflow passes --build-arg BUILD_SHA=$GITHUB_SHA.
+ARG BUILD_SHA=unknown
+ENV BUILD_SHA=$BUILD_SHA
+
+ENV NODE_ENV=production
+ENV PORT=8080
+ENV BOT_PORT=4001
+ENV BOT_SERVICE_URL=http://localhost:4001
+
+# Startup script: launch bot in background, then main app in foreground
+CMD sh -c 'cd /app/bot && python3 -m uvicorn main:app --host 0.0.0.0 --port 4001 & cd /app && node dist/index.cjs'
+

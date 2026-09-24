@@ -1,0 +1,1283 @@
+{
+  "source": "Copy of Project Allocation_ Captsone Students.xlsx",
+  "extractedRows": 84,
+  "students": [
+    {
+      "sourceRow": 3,
+      "name": "Aravind P",
+      "nameAsWritten": "ARAVIND P",
+      "email": "aravind.p@bbattmh.christuniversity.in",
+      "className": "5BBAT",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Poornima Nair",
+      "project": "AI-Based Customer Segmentation for Retail Businesses",
+      "team": "1"
+    },
+    {
+      "sourceRow": 4,
+      "name": "Manu Shankar A D",
+      "nameAsWritten": "MANU SHANKAR A D",
+      "email": "manu.shankarad@bbattmh.christuniversity.in",
+      "className": "5BBAT",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Poornima Nair",
+      "project": "AI-Based Customer Segmentation for Retail Businesses",
+      "team": "1"
+    },
+    {
+      "sourceRow": 5,
+      "name": "K Rupa",
+      "nameAsWritten": "K RUPA",
+      "email": "k.rupa@bbattmh.christuniversity.in",
+      "className": "5BBAT",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Poornima Nair",
+      "project": "AI-Based Customer Segmentation for Retail Businesses",
+      "team": "1"
+    },
+    {
+      "sourceRow": 6,
+      "name": "Srikari Gorrela",
+      "nameAsWritten": "SRIKARI GORRELA",
+      "email": "srikari.gorrela@bbasbah.christuniversity.in",
+      "className": "5BBASBA A",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Poornima Nair",
+      "project": "AI-Based Customer Segmentation for Retail Businesses",
+      "team": "1"
+    },
+    {
+      "sourceRow": 7,
+      "name": "Sahithi Madiraju",
+      "nameAsWritten": "SAHITHI MADIRAJU",
+      "email": "sahithi.madiraju@bbasbah.christuniversity.in",
+      "className": "5BBASBA A",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Poornima Nair",
+      "project": "AI-Based Customer Segmentation for Retail Businesses",
+      "team": "1"
+    },
+    {
+      "sourceRow": 8,
+      "name": "Mridul Garg",
+      "nameAsWritten": "MRIDUL GARG",
+      "email": "mridul.garg@bbasbah.christuniversity.in",
+      "className": "5BBASBA A",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Poornima Nair",
+      "project": "AI-Based Customer Segmentation for Retail Businesses",
+      "team": "1"
+    },
+    {
+      "sourceRow": 9,
+      "name": "K Arundathi Prasad",
+      "nameAsWritten": "K ARUNDATHI PRASAD",
+      "email": "karundathi.prasad@bbafeh.christuniversity.in",
+      "className": "5BBAF&E A",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Poornima Nair",
+      "project": "AI-Based Customer Segmentation for Retail Businesses",
+      "team": "1"
+    },
+    {
+      "sourceRow": 10,
+      "name": "Gopika K",
+      "nameAsWritten": "GOPIKA K",
+      "email": "gopika.k@bbafeh.christuniversity.in",
+      "className": "5BBAF&E A",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Poornima Nair",
+      "project": "AI-Based Customer Segmentation for Retail Businesses",
+      "team": "1"
+    },
+    {
+      "sourceRow": 12,
+      "name": "Drishti Agrawal",
+      "nameAsWritten": "DRISHTI AGRAWAL",
+      "email": "drishti.agrawal@bbafibh.christuniversity.in",
+      "className": "5BBAF&E B",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Mallika",
+      "project": "Predicting Customer Churn Using Transactional Data",
+      "team": "2"
+    },
+    {
+      "sourceRow": 13,
+      "name": "Nishant Kumar",
+      "nameAsWritten": "NISHANT KUMAR",
+      "email": "nishant.kumar@bbasbah.christuniversity.in",
+      "className": "5BBASBA B",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Mallika",
+      "project": "Predicting Customer Churn Using Transactional Data",
+      "team": "2"
+    },
+    {
+      "sourceRow": 14,
+      "name": "Chetanye Gulati",
+      "nameAsWritten": "CHETANYE GULATI",
+      "email": "chetanye.gulati@bbasbah.christuniversity.in",
+      "className": "5BBASBA B",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Mallika",
+      "project": "Predicting Customer Churn Using Transactional Data",
+      "team": "2"
+    },
+    {
+      "sourceRow": 15,
+      "name": "Sriya B N",
+      "nameAsWritten": "SRIYA B N",
+      "email": "sriya.n@bbasbah.christuniversity.in",
+      "className": "5BBASBA B",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Mallika",
+      "project": "Predicting Customer Churn Using Transactional Data",
+      "team": "2"
+    },
+    {
+      "sourceRow": 16,
+      "name": "Varun C",
+      "nameAsWritten": "VARUN C",
+      "email": "varun.c@bbasbah.christuniversity.in",
+      "className": "5BBASBA B",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Mallika",
+      "project": "Predicting Customer Churn Using Transactional Data",
+      "team": "2"
+    },
+    {
+      "sourceRow": 17,
+      "name": "Kapil Rawat",
+      "nameAsWritten": "KAPIL RAWAT",
+      "email": "kapil.rawat@bbasbah.christuniversity.in",
+      "className": "5BBASBA B",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Mallika",
+      "project": "Predicting Customer Churn Using Transactional Data",
+      "team": "2"
+    },
+    {
+      "sourceRow": 18,
+      "name": "Lingam Harika Mahanvitha",
+      "nameAsWritten": "LINGAM HARIKA MAHANVITHA",
+      "email": "lingam.mahanvitha@bbasbah.christuniversity.in",
+      "className": "5BBASBA B",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Mallika",
+      "project": "Predicting Customer Churn Using Transactional Data",
+      "team": "2"
+    },
+    {
+      "sourceRow": 19,
+      "name": "Ishika Tulsyan",
+      "nameAsWritten": "ISHIKA TULSYAN",
+      "email": "ishika.tulsyan@bbasbah.christuniversity.in",
+      "className": "5BBASBA B",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Mallika",
+      "project": "Predicting Customer Churn Using Transactional Data",
+      "team": "2"
+    },
+    {
+      "sourceRow": 20,
+      "name": "Ujjawala Singh",
+      "nameAsWritten": "UJJAWALA SINGH",
+      "email": "ujjawala.singh@bbasbah.christuniversity.in",
+      "className": "5BBASBA B",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Mallika",
+      "project": "Predicting Customer Churn Using Transactional Data",
+      "team": "2"
+    },
+    {
+      "sourceRow": 21,
+      "name": "Harsh Mittal",
+      "nameAsWritten": "HARSH MITTAL",
+      "email": "harsh.mittal@bbasbah.christuniversity.in",
+      "className": "5BBASBA B",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Mallika",
+      "project": "Predicting Customer Churn Using Transactional Data",
+      "team": "2"
+    },
+    {
+      "sourceRow": 23,
+      "name": "Ashrita Ananth",
+      "nameAsWritten": "Ashrita Ananth",
+      "email": "ashrita.ananth@bbafibh.christuniversity.in",
+      "className": "5BBAFIB A",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Haritha",
+      "project": "Predicting Customer Churn Using Transactional Data",
+      "team": "2"
+    },
+    {
+      "sourceRow": 24,
+      "name": "Sharan Sunil Krishnaa",
+      "nameAsWritten": "Sharan Sunil Krishnaa",
+      "email": "sharan.sunil@bbafibh.christuniversity.in",
+      "className": "5BBAFIB A",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Haritha",
+      "project": "Predicting Customer Churn Using Transactional Data",
+      "team": "2"
+    },
+    {
+      "sourceRow": 25,
+      "name": "Prerak Gor",
+      "nameAsWritten": "Prerak Gor",
+      "email": "prerak.laxmikant@bbafibh.christuniversity.in",
+      "className": "5BBAFIB A",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Haritha",
+      "project": "Predicting Customer Churn Using Transactional Data",
+      "team": "2"
+    },
+    {
+      "sourceRow": 26,
+      "name": "Nayana Raj Samyal",
+      "nameAsWritten": "Nayana Raj Samyal",
+      "email": "nayana.raj@bbafibh.christuniversity.in",
+      "className": "5BBAFIB B",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Haritha",
+      "project": "AI-Based Customer Segmentation for Retail Businesses",
+      "team": "1"
+    },
+    {
+      "sourceRow": 27,
+      "name": "Joel Biju",
+      "nameAsWritten": "Joel Biju",
+      "email": "joel.biju@bbafibh.christuniversity.in",
+      "className": "5BBAFIB B",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Haritha",
+      "project": "AI-Based Customer Segmentation for Retail Businesses",
+      "team": "1"
+    },
+    {
+      "sourceRow": 28,
+      "name": "Mohun Layek",
+      "nameAsWritten": "Mohun Layek",
+      "email": "mohun.layek@bbafibh.christuniversity.in",
+      "className": "5BBAFIB B",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Haritha",
+      "project": "AI-Based Customer Segmentation for Retail Businesses",
+      "team": "1"
+    },
+    {
+      "sourceRow": 29,
+      "name": "Gopika Babu",
+      "nameAsWritten": "Gopika Babu",
+      "email": "gopika.babu@bbafibh.christuniversity.in",
+      "className": "5BBAFIB B",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentor": "Dr Haritha",
+      "project": "AI-Based Customer Segmentation for Retail Businesses",
+      "team": "1"
+    },
+    {
+      "sourceRow": 31,
+      "name": "Parameshwari Banerjee",
+      "nameAsWritten": "Parameshwari Banerjee",
+      "email": "parameshwari.banerjee@bbafibh.christuniversity.in",
+      "className": "5BBAFIB B",
+      "domain": "HR & People Analytics",
+      "academicMentor": "Dr Manisha Saxena",
+      "project": "Employee Attrition Prediction Using HR Analytics",
+      "team": "3"
+    },
+    {
+      "sourceRow": 32,
+      "name": "Nandish Udupi R",
+      "nameAsWritten": "Nandish Udupi R",
+      "email": "nandish.r@bbafibh.christuniversity.in",
+      "className": "5BBAFIB B",
+      "domain": "HR & People Analytics",
+      "academicMentor": "Dr Manisha Saxena",
+      "project": "Employee Attrition Prediction Using HR Analytics",
+      "team": "3"
+    },
+    {
+      "sourceRow": 33,
+      "name": "Sangeetha Nair",
+      "nameAsWritten": "Sangeetha Nair",
+      "email": "sangeetha.ratheesh@bbafibh.christuniversity.in",
+      "className": "5BBAFIB B",
+      "domain": "HR & People Analytics",
+      "academicMentor": "Dr Manisha Saxena",
+      "project": "Employee Attrition Prediction Using HR Analytics",
+      "team": "3"
+    },
+    {
+      "sourceRow": 34,
+      "name": "Isha Ivy",
+      "nameAsWritten": "Isha Ivy",
+      "email": "isha.ivy@bbafibh.christuniversity.in",
+      "className": "5BBAFIB A",
+      "domain": "HR & People Analytics",
+      "academicMentor": "Dr Manisha Saxena",
+      "project": "Employee Attrition Prediction Using HR Analytics",
+      "team": "3"
+    },
+    {
+      "sourceRow": 35,
+      "name": "Mrunmayi Rao",
+      "nameAsWritten": "Mrunmayi Rao",
+      "email": "mrunmayi.rao@bbafibh.christuniversity.in",
+      "className": "5BBAFIB A",
+      "domain": "HR & People Analytics",
+      "academicMentor": "Dr Manisha Saxena",
+      "project": "Employee Attrition Prediction Using HR Analytics",
+      "team": "3"
+    },
+    {
+      "sourceRow": 36,
+      "name": "Sangam Sandip Mehta",
+      "nameAsWritten": "SANGAM SANDIP MEHTA",
+      "email": "sangam.sandipmehta@bbasbah.christuniversity.in",
+      "className": "5BBASBA A",
+      "domain": "HR & People Analytics",
+      "academicMentor": "Dr Manisha Saxena",
+      "project": "Employee Attrition Prediction Using HR Analytics",
+      "team": "3"
+    },
+    {
+      "sourceRow": 37,
+      "name": "Udit",
+      "nameAsWritten": "UDIT",
+      "email": "udit@bbasbah.christuniversity.in",
+      "className": "5BBASBA A",
+      "domain": "HR & People Analytics",
+      "academicMentor": "Dr Manisha Saxena",
+      "project": "Employee Attrition Prediction Using HR Analytics",
+      "team": "3"
+    },
+    {
+      "sourceRow": 38,
+      "name": "Disha Aswal",
+      "nameAsWritten": "DISHA ASWAL",
+      "email": "disha.aswal@bbasbah.christuniversity.in",
+      "className": "5BBASBA A",
+      "domain": "HR & People Analytics",
+      "academicMentor": "Dr Manisha Saxena",
+      "project": "Employee Attrition Prediction Using HR Analytics",
+      "team": "3"
+    },
+    {
+      "sourceRow": 39,
+      "name": "Ashutosh Sahoo",
+      "nameAsWritten": "ASHUTOSH SAHOO",
+      "email": "ashutosh.sahoo@bbasbah.christuniversity.in",
+      "className": "5BBASBA A",
+      "domain": "HR & People Analytics",
+      "academicMentor": "Dr Manisha Saxena",
+      "project": "Employee Attrition Prediction Using HR Analytics",
+      "team": "3"
+    },
+    {
+      "sourceRow": 40,
+      "name": "Vishak Sambasivam",
+      "nameAsWritten": "VISHAK SAMBASIVAM",
+      "email": "vishak.sambasivam@bbasbah.christuniversity.in",
+      "className": "5BBASBA B",
+      "domain": "HR & People Analytics",
+      "academicMentor": "Dr Manisha Saxena",
+      "project": "Employee Attrition Prediction Using HR Analytics",
+      "team": "3"
+    },
+    {
+      "sourceRow": 42,
+      "name": "Apoorva Rao R",
+      "nameAsWritten": "APOORVA RAO R",
+      "email": "apoorva.r@bbattmh.christuniversity.in",
+      "className": "5BBAT",
+      "domain": "Tourism & Service Analytics",
+      "academicMentor": "Dr Indu",
+      "project": "Tourism Revenue Forecasting Using Seasonal Data",
+      "team": "4"
+    },
+    {
+      "sourceRow": 43,
+      "name": "Goutham V",
+      "nameAsWritten": "GOUTHAM V",
+      "email": "goutham.v@bbattmh.christuniversity.in",
+      "className": "5BBAT",
+      "domain": "Tourism & Service Analytics",
+      "academicMentor": "Dr Indu",
+      "project": "Tourism Revenue Forecasting Using Seasonal Data",
+      "team": "4"
+    },
+    {
+      "sourceRow": 44,
+      "name": "Hiya Jain",
+      "nameAsWritten": "HIYA JAIN",
+      "email": "hiya.jain@bbattmh.christuniversity.in",
+      "className": "5BBAT",
+      "domain": "Tourism & Service Analytics",
+      "academicMentor": "Dr Indu",
+      "project": "Tourism Revenue Forecasting Using Seasonal Data",
+      "team": "4"
+    },
+    {
+      "sourceRow": 45,
+      "name": "Jon Jayaprakash Thattamparampil",
+      "nameAsWritten": "JON JAYAPRAKASH THATTAMPARAMPIL",
+      "email": "jon.thattamparampil@bbattmh.christuniversity.in",
+      "className": "5BBAT",
+      "domain": "Tourism & Service Analytics",
+      "academicMentor": "Dr Indu",
+      "project": "Tourism Revenue Forecasting Using Seasonal Data",
+      "team": "4"
+    },
+    {
+      "sourceRow": 46,
+      "name": "Rashmi Sharma",
+      "nameAsWritten": "RASHMI SHARMA",
+      "email": "rashmi.sharma@bbattmh.christuniversity.in",
+      "className": "5BBAT",
+      "domain": "Tourism & Service Analytics",
+      "academicMentor": "Dr Indu",
+      "project": "Tourism Revenue Forecasting Using Seasonal Data",
+      "team": "4"
+    },
+    {
+      "sourceRow": 47,
+      "name": "Vani Jain",
+      "nameAsWritten": "VANI JAIN",
+      "email": "vani.jain@bbattmh.christuniversity.in",
+      "className": "5BBAT",
+      "domain": "Tourism & Service Analytics",
+      "academicMentor": "Dr Indu",
+      "project": "Tourism Revenue Forecasting Using Seasonal Data",
+      "team": "4"
+    },
+    {
+      "sourceRow": 48,
+      "name": "Veeranala Dheepthimai Sai",
+      "nameAsWritten": "VEERANALA DHEEPTHIMAI SAI",
+      "email": "veeranaladheepthimai.sai@bbafeh.christuniversity.in",
+      "className": "5BBAF&E A",
+      "domain": "Tourism & Service Analytics",
+      "academicMentor": "Dr Indu",
+      "project": "Tourism Revenue Forecasting Using Seasonal Data",
+      "team": "4"
+    },
+    {
+      "sourceRow": 49,
+      "name": "Abraham Varghese",
+      "nameAsWritten": "ABRAHAM VARGHESE",
+      "email": "abraham.varghese@bbafeh.christuniversity.in",
+      "className": "5BBAF&E B",
+      "domain": "Tourism & Service Analytics",
+      "academicMentor": "Dr Indu",
+      "project": "Tourism Revenue Forecasting Using Seasonal Data",
+      "team": "4"
+    },
+    {
+      "sourceRow": 52,
+      "name": "Akshaya S",
+      "nameAsWritten": "AKSHAYA S",
+      "email": "akshaya.s@bbafeh.christuniversity.in",
+      "className": "5BBAF&E A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Avishek",
+      "project": "Credit Risk Assessment Using Machine Learning Models",
+      "team": "5"
+    },
+    {
+      "sourceRow": 53,
+      "name": "Alwin Byju",
+      "nameAsWritten": "ALWIN BYJU",
+      "email": "alwin.byju@bbafeh.christuniversity.in",
+      "className": "5BBAF&E A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Avishek",
+      "project": "Credit Risk Assessment Using Machine Learning Models",
+      "team": "5"
+    },
+    {
+      "sourceRow": 54,
+      "name": "Ekaansh Agarwal",
+      "nameAsWritten": "EKAANSH AGARWAL",
+      "email": "ekaansh.agarwal@bbafeh.christuniversity.in",
+      "className": "5BBAF&E A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Avishek",
+      "project": "Credit Risk Assessment Using Machine Learning Models",
+      "team": "5"
+    },
+    {
+      "sourceRow": 55,
+      "name": "Janya Madaan",
+      "nameAsWritten": "JANYA MADAAN",
+      "email": "janya.madaan@bbafeh.christuniversity.in",
+      "className": "5BBAF&E A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Avishek",
+      "project": "Credit Risk Assessment Using Machine Learning Models",
+      "team": "5"
+    },
+    {
+      "sourceRow": 56,
+      "name": "Madhavan Rajkumar",
+      "nameAsWritten": "MADHAVAN RAJKUMAR",
+      "email": "madhavan.rajkumar@bbafeh.christuniversity.in",
+      "className": "5BBAF&E A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Avishek",
+      "project": "Credit Risk Assessment Using Machine Learning Models",
+      "team": "5"
+    },
+    {
+      "sourceRow": 57,
+      "name": "Nehal Ranka",
+      "nameAsWritten": "NEHAL RANKA",
+      "email": "nehal.ranka@bbafeh.christuniversity.in",
+      "className": "5BBAF&E A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Avishek",
+      "project": "Credit Risk Assessment Using Machine Learning Models",
+      "team": "5"
+    },
+    {
+      "sourceRow": 58,
+      "name": "Nitya Deshpande",
+      "nameAsWritten": "NITYA DESHPANDE",
+      "email": "nitya.deshpande@bbafeh.christuniversity.in",
+      "className": "5BBAF&E A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Avishek",
+      "project": "Credit Risk Assessment Using Machine Learning Models",
+      "team": "5"
+    },
+    {
+      "sourceRow": 59,
+      "name": "Pavni Sharma",
+      "nameAsWritten": "PAVNI SHARMA",
+      "email": "pavni.sharma@bbafeh.christuniversity.in",
+      "className": "5BBAF&E A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Avishek",
+      "project": "Credit Risk Assessment Using Machine Learning Models",
+      "team": "5"
+    },
+    {
+      "sourceRow": 60,
+      "name": "Suditi J Shetty",
+      "nameAsWritten": "SUDITI J SHETTY",
+      "email": "suditij.shetty@bbafeh.christuniversity.in",
+      "className": "5BBAF&E A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Avishek",
+      "project": "Credit Risk Assessment Using Machine Learning Models",
+      "team": "5"
+    },
+    {
+      "sourceRow": 61,
+      "name": "Vansha Kanojia",
+      "nameAsWritten": "VANSHA KANOJIA",
+      "email": "vansha.kanojia@bbafeh.christuniversity.in",
+      "className": "5BBAF&E A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Avishek",
+      "project": "Credit Risk Assessment Using Machine Learning Models",
+      "team": "5"
+    },
+    {
+      "sourceRow": 63,
+      "name": "Jivitesh Arora",
+      "nameAsWritten": "JIVITESH ARORA",
+      "email": "jivitesh.arora@bbafeh.christuniversity.in",
+      "className": "5BBAF&E A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Chandravesh",
+      "project": "AI-Based Loan Default Prediction for NBFCs",
+      "team": "6"
+    },
+    {
+      "sourceRow": 64,
+      "name": "Prachi Bhasin",
+      "nameAsWritten": "PRACHI BHASIN",
+      "email": "prachi.bhasin@bbafeh.christuniversity.in",
+      "className": "5BBAF&E A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Chandravesh",
+      "project": "AI-Based Loan Default Prediction for NBFCs",
+      "team": "6"
+    },
+    {
+      "sourceRow": 65,
+      "name": "Jiya Mehta",
+      "nameAsWritten": "JIYA MEHTA",
+      "email": "jiya.mehta@bbafeh.christuniversity.in",
+      "className": "5BBAF&E B",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Chandravesh",
+      "project": "AI-Based Loan Default Prediction for NBFCs",
+      "team": "6"
+    },
+    {
+      "sourceRow": 66,
+      "name": "Manya Lakhmani",
+      "nameAsWritten": "MANYA LAKHMANI",
+      "email": "manya.lakhmani@bbafeh.christuniversity.in",
+      "className": "5BBAF&E B",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Chandravesh",
+      "project": "AI-Based Loan Default Prediction for NBFCs",
+      "team": "6"
+    },
+    {
+      "sourceRow": 67,
+      "name": "Nistha Jindal",
+      "nameAsWritten": "NISTHA JINDAL",
+      "email": "nistha.jindal@bbafeh.christuniversity.in",
+      "className": "5BBAF&E B",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Chandravesh",
+      "project": "AI-Based Loan Default Prediction for NBFCs",
+      "team": "6"
+    },
+    {
+      "sourceRow": 68,
+      "name": "Shriya Sharad",
+      "nameAsWritten": "Shriya Sharad",
+      "email": "shriya.sharad@bbafibh.christuniversity.in",
+      "className": "5BBAFIB B",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Chandravesh",
+      "project": "AI-Based Loan Default Prediction for NBFCs",
+      "team": "6"
+    },
+    {
+      "sourceRow": 69,
+      "name": "Bezawada Joshitha Priya Hasini",
+      "nameAsWritten": "BEZAWADA JOSHITHA PRIYA HASINI",
+      "email": "bezawada.hasini@bbasbah.christuniversity.in",
+      "className": "5BBASBA A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Chandravesh",
+      "project": "AI-Based Loan Default Prediction for NBFCs",
+      "team": "6"
+    },
+    {
+      "sourceRow": 70,
+      "name": "Daksh Kaktan",
+      "nameAsWritten": "DAKSH KAKTAN",
+      "email": "daksh.kaktan@bbasbah.christuniversity.in",
+      "className": "5BBASBA A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Chandravesh",
+      "project": "AI-Based Loan Default Prediction for NBFCs",
+      "team": "6"
+    },
+    {
+      "sourceRow": 71,
+      "name": "Dhruva Prasanth",
+      "nameAsWritten": "DHRUVA PRASANTH",
+      "email": "dhruva.prasanth@bbasbah.christuniversity.in",
+      "className": "5BBASBA A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Chandravesh",
+      "project": "AI-Based Loan Default Prediction for NBFCs",
+      "team": "6"
+    },
+    {
+      "sourceRow": 72,
+      "name": "Nakul J Menon",
+      "nameAsWritten": "NAKUL J MENON",
+      "email": "nakul.menon@bbasbah.christuniversity.in",
+      "className": "5BBASBA A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Chandravesh",
+      "project": "AI-Based Loan Default Prediction for NBFCs",
+      "team": "6"
+    },
+    {
+      "sourceRow": 74,
+      "name": "Pavithra Nair",
+      "nameAsWritten": "PAVITHRA NAIR",
+      "email": "pavithra.nair@bbasbah.christuniversity.in",
+      "className": "5BBASBA A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Piyush",
+      "project": "Personal Finance Planning Using Predictive Analytics",
+      "team": "7"
+    },
+    {
+      "sourceRow": 75,
+      "name": "Nikhita Koppuravuri",
+      "nameAsWritten": "NIKHITA KOPPURAVURI",
+      "email": "nikhita.koppuravuri@bbasbah.christuniversity.in",
+      "className": "5BBASBA A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Piyush",
+      "project": "Personal Finance Planning Using Predictive Analytics",
+      "team": "7"
+    },
+    {
+      "sourceRow": 76,
+      "name": "Samanvitha Kashyap",
+      "nameAsWritten": "SAMANVITHA KASHYAP",
+      "email": "samanvitha.kashyap@bbasbah.christuniversity.in",
+      "className": "5BBASBA A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Piyush",
+      "project": "Personal Finance Planning Using Predictive Analytics",
+      "team": "7"
+    },
+    {
+      "sourceRow": 77,
+      "name": "Niharika Nagesh Bhat",
+      "nameAsWritten": "NIHARIKA NAGESH BHAT",
+      "email": "niharika.bhat@bbasbah.christuniversity.in",
+      "className": "5BBASBA B",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Piyush",
+      "project": "Personal Finance Planning Using Predictive Analytics",
+      "team": "7"
+    },
+    {
+      "sourceRow": 78,
+      "name": "Khushi Lakhmani",
+      "nameAsWritten": "KHUSHI LAKHMANI",
+      "email": "khushi.lakhmani@bbasbah.christuniversity.in",
+      "className": "5BBASBA B",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Piyush",
+      "project": "Personal Finance Planning Using Predictive Analytics",
+      "team": "7"
+    },
+    {
+      "sourceRow": 79,
+      "name": "Kushagra Gulati",
+      "nameAsWritten": "KUSHAGRA GULATI",
+      "email": "kushagra.gulati@bbasbah.christuniversity.in",
+      "className": "5BBASBA B",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Piyush",
+      "project": "Personal Finance Planning Using Predictive Analytics",
+      "team": "7"
+    },
+    {
+      "sourceRow": 80,
+      "name": "Sai Shobhith C",
+      "nameAsWritten": "SAI SHOBHITH C",
+      "email": "sai.c@bbasbah.christuniversity.in",
+      "className": "5BBASBA B",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Piyush",
+      "project": "Personal Finance Planning Using Predictive Analytics",
+      "team": "7"
+    },
+    {
+      "sourceRow": 81,
+      "name": "Arun Murari Gottipati",
+      "nameAsWritten": "ARUN MURARI GOTTIPATI",
+      "email": "arun.gottipati@bbasbah.christuniversity.in",
+      "className": "5BBASBA B",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Piyush",
+      "project": "Personal Finance Planning Using Predictive Analytics",
+      "team": "7"
+    },
+    {
+      "sourceRow": 82,
+      "name": "Udit Baid",
+      "nameAsWritten": "UDIT BAID",
+      "email": "udit.baid@bbasbah.christuniversity.in",
+      "className": "5BBASBA B",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Piyush",
+      "project": "Personal Finance Planning Using Predictive Analytics",
+      "team": "7"
+    },
+    {
+      "sourceRow": 83,
+      "name": "Vikram Sinha",
+      "nameAsWritten": "VIKRAM SINHA",
+      "email": "vikram.sinha@bbasbah.christuniversity.in",
+      "className": "5BBASBA B",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Piyush",
+      "project": "Personal Finance Planning Using Predictive Analytics",
+      "team": "7"
+    },
+    {
+      "sourceRow": 84,
+      "name": "Hajira falak",
+      "nameAsWritten": "Hajira falak",
+      "email": "hajira.falak@bbafibh.christuniversity.in",
+      "className": "5BBAFIB B",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Piyush",
+      "project": "Personal Finance Planning Using Predictive Analytics",
+      "team": "7"
+    },
+    {
+      "sourceRow": 86,
+      "name": "Ishika Khandelwal",
+      "nameAsWritten": "Ishika Khandelwal",
+      "email": "ishika.khandelwal@bbafibh.christuniversity.in",
+      "className": "5BBAFIB A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Siva Reddy",
+      "project": "Stock Price Movement Prediction Using Historical Data",
+      "team": "8"
+    },
+    {
+      "sourceRow": 87,
+      "name": "Reshu jain",
+      "nameAsWritten": "Reshu jain",
+      "email": "reshu.jain@bbafibh.christuniversity.in",
+      "className": "5BBAFIB A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Siva Reddy",
+      "project": "Stock Price Movement Prediction Using Historical Data",
+      "team": "8"
+    },
+    {
+      "sourceRow": 88,
+      "name": "Tamanna Gupta",
+      "nameAsWritten": "Tamanna Gupta",
+      "email": "tamanna.gupta@bbafibh.christuniversity.in",
+      "className": "5BBAFIB A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Siva Reddy",
+      "project": "Stock Price Movement Prediction Using Historical Data",
+      "team": "8"
+    },
+    {
+      "sourceRow": 89,
+      "name": "Trishikha Vijay",
+      "nameAsWritten": "Trishikha Vijay",
+      "email": "trishikha.vijay@bbafibh.christuniversity.in",
+      "className": "5BBAFIB A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Siva Reddy",
+      "project": "Stock Price Movement Prediction Using Historical Data",
+      "team": "8"
+    },
+    {
+      "sourceRow": 90,
+      "name": "Jiya Kadate",
+      "nameAsWritten": "Jiya Kadate",
+      "email": "jiya.kadate@bbafibh.christuniversity.in",
+      "className": "5BBAFIB A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Siva Reddy",
+      "project": "Stock Price Movement Prediction Using Historical Data",
+      "team": "8"
+    },
+    {
+      "sourceRow": 91,
+      "name": "Arnav  Jain",
+      "nameAsWritten": "Arnav  Jain",
+      "email": "arnav.jain@bbafibh.christuniversity.in",
+      "className": "5BBAFIB A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Siva Reddy",
+      "project": "Stock Price Movement Prediction Using Historical Data",
+      "team": "8"
+    },
+    {
+      "sourceRow": 92,
+      "name": "Sesha Sai Sriya Kaluva",
+      "nameAsWritten": "Sesha Sai Sriya Kaluva",
+      "email": "sesha.sai@bbafibh.christuniversity.in",
+      "className": "5BBAFIB A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Siva Reddy",
+      "project": "Stock Price Movement Prediction Using Historical Data",
+      "team": "8"
+    },
+    {
+      "sourceRow": 93,
+      "name": "Prarthana SB",
+      "nameAsWritten": "Prarthana SB",
+      "email": "prarthana.s@bbafibh.christuniversity.in",
+      "className": "5BBAFIB A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Siva Reddy",
+      "project": "Stock Price Movement Prediction Using Historical Data",
+      "team": "8"
+    },
+    {
+      "sourceRow": 94,
+      "name": "Nikhil. K",
+      "nameAsWritten": "Nikhil. K",
+      "email": "nikhil.k@bbafibh.christuniversity.in",
+      "className": "5BBAFIB A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Siva Reddy",
+      "project": "Stock Price Movement Prediction Using Historical Data",
+      "team": "8"
+    },
+    {
+      "sourceRow": 95,
+      "name": "K S Pranav Kumar Swamy",
+      "nameAsWritten": "K S Pranav Kumar Swamy",
+      "email": "pranav.kumar@bbafibh.christuniversity.in",
+      "className": "5BBAFIB A",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentor": "Dr Siva Reddy",
+      "project": "Stock Price Movement Prediction Using Historical Data",
+      "team": "8"
+    }
+  ],
+  "industryMentors": [
+    {
+      "name": "Anas Ansari",
+      "email": "anasansari57110@gmail.com",
+      "teams": [
+        "8"
+      ]
+    },
+    {
+      "name": "Bikash Das",
+      "email": "bikash.das@digifintech.org",
+      "teams": [
+        "7"
+      ]
+    },
+    {
+      "name": "Javeed Alam",
+      "email": "sj_alam@yahoo.com",
+      "teams": [
+        "1"
+      ]
+    },
+    {
+      "name": "Mayank Mishra",
+      "email": "mayankmx2019@email.iimcal.ac.in",
+      "teams": [
+        "4"
+      ]
+    },
+    {
+      "name": "Rajarshi Banerjee",
+      "email": "rajarshi.banerjee73@gmail.com",
+      "teams": [
+        "6"
+      ]
+    },
+    {
+      "name": "Ram Ray",
+      "email": "ram.ray@hotmail.com",
+      "teams": [
+        "2"
+      ]
+    },
+    {
+      "name": "Thomas Mathew",
+      "email": "tmmolethu@gmail.com",
+      "teams": [
+        "3"
+      ]
+    },
+    {
+      "name": "Vinod Kumar Singh",
+      "email": "singh_vinod@hotmail.com",
+      "teams": [
+        "5"
+      ]
+    }
+  ],
+  "teams": [
+    {
+      "team": "1",
+      "project": "AI-Based Customer Segmentation for Retail Businesses",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentors": [
+        "Dr Haritha",
+        "Dr Poornima Nair"
+      ],
+      "industryMentors": [
+        "Javeed Alam"
+      ],
+      "studentEmails": [
+        "aravind.p@bbattmh.christuniversity.in",
+        "manu.shankarad@bbattmh.christuniversity.in",
+        "k.rupa@bbattmh.christuniversity.in",
+        "srikari.gorrela@bbasbah.christuniversity.in",
+        "sahithi.madiraju@bbasbah.christuniversity.in",
+        "mridul.garg@bbasbah.christuniversity.in",
+        "karundathi.prasad@bbafeh.christuniversity.in",
+        "gopika.k@bbafeh.christuniversity.in",
+        "nayana.raj@bbafibh.christuniversity.in",
+        "joel.biju@bbafibh.christuniversity.in",
+        "mohun.layek@bbafibh.christuniversity.in",
+        "gopika.babu@bbafibh.christuniversity.in"
+      ]
+    },
+    {
+      "team": "2",
+      "project": "Predicting Customer Churn Using Transactional Data",
+      "domain": "Marketing & Customer Analytics",
+      "academicMentors": [
+        "Dr Haritha",
+        "Dr Mallika"
+      ],
+      "industryMentors": [
+        "Ram Ray"
+      ],
+      "studentEmails": [
+        "drishti.agrawal@bbafibh.christuniversity.in",
+        "nishant.kumar@bbasbah.christuniversity.in",
+        "chetanye.gulati@bbasbah.christuniversity.in",
+        "sriya.n@bbasbah.christuniversity.in",
+        "varun.c@bbasbah.christuniversity.in",
+        "kapil.rawat@bbasbah.christuniversity.in",
+        "lingam.mahanvitha@bbasbah.christuniversity.in",
+        "ishika.tulsyan@bbasbah.christuniversity.in",
+        "ujjawala.singh@bbasbah.christuniversity.in",
+        "harsh.mittal@bbasbah.christuniversity.in",
+        "ashrita.ananth@bbafibh.christuniversity.in",
+        "sharan.sunil@bbafibh.christuniversity.in",
+        "prerak.laxmikant@bbafibh.christuniversity.in"
+      ]
+    },
+    {
+      "team": "3",
+      "project": "Employee Attrition Prediction Using HR Analytics",
+      "domain": "HR & People Analytics",
+      "academicMentors": [
+        "Dr Manisha Saxena"
+      ],
+      "industryMentors": [
+        "Thomas Mathew"
+      ],
+      "studentEmails": [
+        "parameshwari.banerjee@bbafibh.christuniversity.in",
+        "nandish.r@bbafibh.christuniversity.in",
+        "sangeetha.ratheesh@bbafibh.christuniversity.in",
+        "isha.ivy@bbafibh.christuniversity.in",
+        "mrunmayi.rao@bbafibh.christuniversity.in",
+        "sangam.sandipmehta@bbasbah.christuniversity.in",
+        "udit@bbasbah.christuniversity.in",
+        "disha.aswal@bbasbah.christuniversity.in",
+        "ashutosh.sahoo@bbasbah.christuniversity.in",
+        "vishak.sambasivam@bbasbah.christuniversity.in"
+      ]
+    },
+    {
+      "team": "4",
+      "project": "Tourism Revenue Forecasting Using Seasonal Data",
+      "domain": "Tourism & Service Analytics",
+      "academicMentors": [
+        "Dr Indu"
+      ],
+      "industryMentors": [
+        "Mayank Mishra"
+      ],
+      "studentEmails": [
+        "apoorva.r@bbattmh.christuniversity.in",
+        "goutham.v@bbattmh.christuniversity.in",
+        "hiya.jain@bbattmh.christuniversity.in",
+        "jon.thattamparampil@bbattmh.christuniversity.in",
+        "rashmi.sharma@bbattmh.christuniversity.in",
+        "vani.jain@bbattmh.christuniversity.in",
+        "veeranaladheepthimai.sai@bbafeh.christuniversity.in",
+        "abraham.varghese@bbafeh.christuniversity.in"
+      ]
+    },
+    {
+      "team": "5",
+      "project": "Credit Risk Assessment Using Machine Learning Models",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentors": [
+        "Dr Avishek"
+      ],
+      "industryMentors": [
+        "Vinod Kumar Singh"
+      ],
+      "studentEmails": [
+        "akshaya.s@bbafeh.christuniversity.in",
+        "alwin.byju@bbafeh.christuniversity.in",
+        "ekaansh.agarwal@bbafeh.christuniversity.in",
+        "janya.madaan@bbafeh.christuniversity.in",
+        "madhavan.rajkumar@bbafeh.christuniversity.in",
+        "nehal.ranka@bbafeh.christuniversity.in",
+        "nitya.deshpande@bbafeh.christuniversity.in",
+        "pavni.sharma@bbafeh.christuniversity.in",
+        "suditij.shetty@bbafeh.christuniversity.in",
+        "vansha.kanojia@bbafeh.christuniversity.in"
+      ]
+    },
+    {
+      "team": "6",
+      "project": "AI-Based Loan Default Prediction for NBFCs",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentors": [
+        "Dr Chandravesh"
+      ],
+      "industryMentors": [
+        "Rajarshi Banerjee"
+      ],
+      "studentEmails": [
+        "jivitesh.arora@bbafeh.christuniversity.in",
+        "prachi.bhasin@bbafeh.christuniversity.in",
+        "jiya.mehta@bbafeh.christuniversity.in",
+        "manya.lakhmani@bbafeh.christuniversity.in",
+        "nistha.jindal@bbafeh.christuniversity.in",
+        "shriya.sharad@bbafibh.christuniversity.in",
+        "bezawada.hasini@bbasbah.christuniversity.in",
+        "daksh.kaktan@bbasbah.christuniversity.in",
+        "dhruva.prasanth@bbasbah.christuniversity.in",
+        "nakul.menon@bbasbah.christuniversity.in"
+      ]
+    },
+    {
+      "team": "7",
+      "project": "Personal Finance Planning Using Predictive Analytics",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentors": [
+        "Dr Piyush"
+      ],
+      "industryMentors": [
+        "Bikash Das"
+      ],
+      "studentEmails": [
+        "pavithra.nair@bbasbah.christuniversity.in",
+        "nikhita.koppuravuri@bbasbah.christuniversity.in",
+        "samanvitha.kashyap@bbasbah.christuniversity.in",
+        "niharika.bhat@bbasbah.christuniversity.in",
+        "khushi.lakhmani@bbasbah.christuniversity.in",
+        "kushagra.gulati@bbasbah.christuniversity.in",
+        "sai.c@bbasbah.christuniversity.in",
+        "arun.gottipati@bbasbah.christuniversity.in",
+        "udit.baid@bbasbah.christuniversity.in",
+        "vikram.sinha@bbasbah.christuniversity.in",
+        "hajira.falak@bbafibh.christuniversity.in"
+      ]
+    },
+    {
+      "team": "8",
+      "project": "Stock Price Movement Prediction Using Historical Data",
+      "domain": "Finance & FinTech Analytics",
+      "academicMentors": [
+        "Dr Siva Reddy"
+      ],
+      "industryMentors": [
+        "Anas Ansari"
+      ],
+      "studentEmails": [
+        "ishika.khandelwal@bbafibh.christuniversity.in",
+        "reshu.jain@bbafibh.christuniversity.in",
+        "tamanna.gupta@bbafibh.christuniversity.in",
+        "trishikha.vijay@bbafibh.christuniversity.in",
+        "jiya.kadate@bbafibh.christuniversity.in",
+        "arnav.jain@bbafibh.christuniversity.in",
+        "sesha.sai@bbafibh.christuniversity.in",
+        "prarthana.s@bbafibh.christuniversity.in",
+        "nikhil.k@bbafibh.christuniversity.in",
+        "pranav.kumar@bbafibh.christuniversity.in"
+      ]
+    }
+  ],
+  "academicMentors": [
+    {
+      "name": "Dr Avishek",
+      "email": "avisek.kundu@christuniversity.in",
+      "teams": [
+        "5"
+      ],
+      "projects": [
+        "Credit Risk Assessment Using Machine Learning Models"
+      ],
+      "students": 10
+    },
+    {
+      "name": "Dr Chandravesh",
+      "email": "chandravesh.chaudhari@christuniversity.in",
+      "teams": [
+        "6"
+      ],
+      "projects": [
+        "AI-Based Loan Default Prediction for NBFCs"
+      ],
+      "students": 10
+    },
+    {
+      "name": "Dr Haritha",
+      "email": "haritha.p@christuniversity.in",
+      "teams": [
+        "1",
+        "2"
+      ],
+      "projects": [
+        "AI-Based Customer Segmentation for Retail Businesses",
+        "Predicting Customer Churn Using Transactional Data"
+      ],
+      "students": 7
+    },
+    {
+      "name": "Dr Indu",
+      "email": "indu.ramkumar@christuniversity.in",
+      "teams": [
+        "4"
+      ],
+      "projects": [
+        "Tourism Revenue Forecasting Using Seasonal Data"
+      ],
+      "students": 8
+    },
+    {
+      "name": "Dr Mallika",
+      "email": "mallika.sankar@christuniversity.in",
+      "teams": [
+        "2"
+      ],
+      "projects": [
+        "Predicting Customer Churn Using Transactional Data"
+      ],
+      "students": 10
+    },
+    {
+      "name": "Dr Manisha Saxena",
+      "email": "manisha.saxena@christuniversity.in",
+      "teams": [
+        "3"
+      ],
+      "projects": [
+        "Employee Attrition Prediction Using HR Analytics"
+      ],
+      "students": 10
+    },
+    {
+      "name": "Dr Piyush",
+      "email": "piyushkumar.jain@christuniversity.in",
+      "teams": [
+        "7"
+      ],
+      "projects": [
+        "Personal Finance Planning Using Predictive Analytics"
+      ],
+      "students": 11
+    },
+    {
+      "name": "Dr Poornima Nair",
+      "email": "poornima.mohan@christuniversity.in",
+      "teams": [
+        "1"
+      ],
+      "projects": [
+        "AI-Based Customer Segmentation for Retail Businesses"
+      ],
+      "students": 8
+    },
+    {
+      "name": "Dr Siva Reddy",
+      "email": "podapala.sivareddy@christuniversity.in",
+      "teams": [
+        "8"
+      ],
+      "projects": [
+        "Stock Price Movement Prediction Using Historical Data"
+      ],
+      "students": 10
+    }
+  ]
+}

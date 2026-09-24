@@ -1,0 +1,83 @@
+{
+  "family": "crm-voiceagent-monitoring-dev",
+  "networkMode": "bridge",
+  "requiresCompatibilities": ["EC2"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "${TASK_EXECUTION_ROLE_ARN}",
+  "taskRoleArn": "${TASK_ROLE_ARN}",
+  "containerDefinitions": [
+    {
+      "name": "prometheus",
+      "image": "prom/prometheus:v2.51.0",
+      "essential": true,
+      "portMappings": [
+        { "containerPort": 9090, "hostPort": 9090, "protocol": "tcp" }
+      ],
+      "command": [
+        "--config.file=/etc/prometheus/prometheus.yml",
+        "--storage.tsdb.path=/prometheus",
+        "--storage.tsdb.retention.time=7d",
+        "--web.enable-lifecycle"
+      ],
+      "mountPoints": [
+        { "sourceVolume": "prometheus-config", "containerPath": "/etc/prometheus", "readOnly": true }
+      ],
+      "memory": 256,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/dev/monitoring",
+          "awslogs-region": "${AWS_REGION}",
+          "awslogs-stream-prefix": "prometheus"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "wget --spider -q http://localhost:9090/-/healthy || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 30
+      }
+    },
+    {
+      "name": "grafana",
+      "image": "grafana/grafana:10.4.1",
+      "essential": true,
+      "portMappings": [
+        { "containerPort": 3000, "hostPort": 3001, "protocol": "tcp" }
+      ],
+      "environment": [
+        { "name": "GF_SECURITY_ADMIN_USER",     "value": "admin" },
+        { "name": "GF_SECURITY_ADMIN_PASSWORD",  "value": "${GRAFANA_PASSWORD}" },
+        { "name": "GF_USERS_ALLOW_SIGN_UP",     "value": "false" },
+        { "name": "GF_INSTALL_PLUGINS",          "value": "grafana-clock-panel,grafana-piechart-panel" }
+      ],
+      "mountPoints": [
+        { "sourceVolume": "grafana-provisioning", "containerPath": "/etc/grafana/provisioning", "readOnly": true },
+        { "sourceVolume": "grafana-dashboards",   "containerPath": "/var/lib/grafana/dashboards", "readOnly": true }
+      ],
+      "memory": 256,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/dev/monitoring",
+          "awslogs-region": "${AWS_REGION}",
+          "awslogs-stream-prefix": "grafana"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "wget --spider -q http://localhost:3000/api/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ],
+  "volumes": [
+    { "name": "prometheus-config", "host": { "sourcePath": "/opt/monitoring/prometheus" } },
+    { "name": "grafana-provisioning", "host": { "sourcePath": "/opt/monitoring/grafana/provisioning" } },
+    { "name": "grafana-dashboards", "host": { "sourcePath": "/opt/monitoring/grafana/dashboards" } }
+  ]
+}

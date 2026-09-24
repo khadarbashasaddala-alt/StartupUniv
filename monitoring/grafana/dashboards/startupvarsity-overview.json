@@ -1,0 +1,365 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+
+    {
+      "type": "row",
+      "title": "Service Health",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "type": "stat",
+      "title": "Portal (Node.js) Status",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "up{job=\"startupvarsity-portal\"}", "legendFormat": "Portal" }],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ],
+          "thresholds": { "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" }
+    },
+    {
+      "type": "stat",
+      "title": "Bot (FastAPI) Status",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "up{job=\"startupvarsity-bot\"}", "legendFormat": "Bot" }],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ],
+          "thresholds": { "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" }
+    },
+    {
+      "type": "stat",
+      "title": "Portal Requests (24h)",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "sum(increase(http_requests_total{job=\"startupvarsity-portal\"}[24h]))", "legendFormat": "" }],
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "steps": [{ "color": "blue", "value": null }] } } },
+      "options": { "colorMode": "value", "graphMode": "area", "textMode": "value" }
+    },
+    {
+      "type": "stat",
+      "title": "Portal Error Rate (5m)",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "sum(rate(http_requests_total{job=\"startupvarsity-portal\",status=~\"5..\"}[5m])) / sum(rate(http_requests_total{job=\"startupvarsity-portal\"}[5m])) * 100", "legendFormat": "" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 2 }, { "color": "red", "value": 5 }] }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "type": "stat",
+      "title": "Portal p95 Latency",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"startupvarsity-portal\"}[5m])) by (le))", "legendFormat": "p95" }],
+      "fieldConfig": { "defaults": { "unit": "s", "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 3 }] } } }
+    },
+    {
+      "type": "stat",
+      "title": "Node.js Heap Used",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "nodejs_heap_size_used_bytes{job=\"startupvarsity-portal\"} / 1024 / 1024", "legendFormat": "Heap MB" }],
+      "fieldConfig": { "defaults": { "unit": "decmbytes", "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 300 }, { "color": "red", "value": 500 }] } } },
+      "options": { "colorMode": "value", "graphMode": "area" }
+    },
+
+    {
+      "type": "row",
+      "title": "Portal — HTTP Metrics",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "collapsed": false
+    },
+    {
+      "type": "timeseries",
+      "title": "Requests per Second (by route)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "sum(rate(http_requests_total{job=\"startupvarsity-portal\"}[5m])) by (route)", "legendFormat": "{{ route }}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 10 } } },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "max"] } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Response Time p50 / p90 / p99",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{job=\"startupvarsity-portal\"}[5m])) by (le))", "legendFormat": "p50" },
+        { "expr": "histogram_quantile(0.90, sum(rate(http_request_duration_seconds_bucket{job=\"startupvarsity-portal\"}[5m])) by (le))", "legendFormat": "p90" },
+        { "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=\"startupvarsity-portal\"}[5m])) by (le))", "legendFormat": "p99" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2, "fillOpacity": 10 } } }
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP Status Breakdown (2xx / 4xx / 5xx)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "sum(rate(http_requests_total{job=\"startupvarsity-portal\",status=~\"2..\"}[5m]))", "legendFormat": "2xx OK" },
+        { "expr": "sum(rate(http_requests_total{job=\"startupvarsity-portal\",status=~\"4..\"}[5m]))", "legendFormat": "4xx Client Error" },
+        { "expr": "sum(rate(http_requests_total{job=\"startupvarsity-portal\",status=~\"5..\"}[5m]))", "legendFormat": "5xx Server Error" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 15 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "5xx Server Error" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] },
+          { "matcher": { "id": "byName", "options": "4xx Client Error" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }] },
+          { "matcher": { "id": "byName", "options": "2xx OK" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "In-Progress Requests",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "sum(http_requests_in_progress{job=\"startupvarsity-portal\"}) by (method)", "legendFormat": "{{ method }}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 20 } } }
+    },
+
+    {
+      "type": "row",
+      "title": "Portal — Node.js Runtime",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 },
+      "collapsed": false
+    },
+    {
+      "type": "timeseries",
+      "title": "Heap Used vs Total (MB)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "nodejs_heap_size_used_bytes{job=\"startupvarsity-portal\"} / 1024 / 1024", "legendFormat": "Heap Used" },
+        { "expr": "nodejs_heap_size_total_bytes{job=\"startupvarsity-portal\"} / 1024 / 1024", "legendFormat": "Heap Total" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "decmbytes", "custom": { "lineWidth": 2, "fillOpacity": 10 } } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Event Loop Lag (ms)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "nodejs_eventloop_lag_seconds{job=\"startupvarsity-portal\"} * 1000", "legendFormat": "Event Loop Lag" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms", "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 100 }, { "color": "red", "value": 500 }] }
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Active Handles & Requests",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 31 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "nodejs_active_handles_total{job=\"startupvarsity-portal\"}", "legendFormat": "Active Handles" },
+        { "expr": "nodejs_active_requests_total{job=\"startupvarsity-portal\"}", "legendFormat": "Active Requests" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 10 } } }
+    },
+    {
+      "type": "timeseries",
+      "title": "GC Duration (p99 by type)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 31 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "histogram_quantile(0.99, rate(nodejs_gc_duration_seconds_bucket{job=\"startupvarsity-portal\"}[5m]))", "legendFormat": "GC p99 {{ kind }}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2, "fillOpacity": 10 } } }
+    },
+
+    {
+      "type": "row",
+      "title": "Portal — Business Metrics",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 39 },
+      "collapsed": false
+    },
+    {
+      "type": "stat",
+      "title": "User Registrations (24h)",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 40 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "sum(increase(user_registrations_total{job=\"startupvarsity-portal\"}[24h]))", "legendFormat": "" }],
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "steps": [{ "color": "blue", "value": null }] } } },
+      "options": { "colorMode": "value", "graphMode": "area", "textMode": "value" }
+    },
+    {
+      "type": "stat",
+      "title": "User Logins (24h)",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 40 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "sum(increase(user_logins_total{job=\"startupvarsity-portal\",status=\"success\"}[24h]))", "legendFormat": "" }],
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "steps": [{ "color": "green", "value": null }] } } },
+      "options": { "colorMode": "value", "graphMode": "area", "textMode": "value" }
+    },
+    {
+      "type": "stat",
+      "title": "Login Failures (24h)",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 40 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "sum(increase(user_logins_total{job=\"startupvarsity-portal\",status=\"failed\"}[24h]))", "legendFormat": "" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 5 }, { "color": "red", "value": 20 }] }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "type": "stat",
+      "title": "Applications Submitted (24h)",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 40 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "sum(increase(application_submissions_total{job=\"startupvarsity-portal\",status=\"submitted\"}[24h]))", "legendFormat": "" }],
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "steps": [{ "color": "blue", "value": null }] } } },
+      "options": { "colorMode": "value", "graphMode": "area", "textMode": "value" }
+    },
+    {
+      "type": "stat",
+      "title": "File Uploads (24h)",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 40 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "sum(increase(file_uploads_total{job=\"startupvarsity-portal\",status=\"success\"}[24h]))", "legendFormat": "" }],
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "steps": [{ "color": "blue", "value": null }] } } },
+      "options": { "colorMode": "value", "graphMode": "area" }
+    },
+    {
+      "type": "stat",
+      "title": "DB Errors (24h)",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 40 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "sum(increase(db_connection_errors_total{job=\"startupvarsity-portal\"}[24h]))", "legendFormat": "" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 5 }] }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "type": "timeseries",
+      "title": "User Registrations & Logins (rate/5m)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 44 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "sum(rate(user_registrations_total{job=\"startupvarsity-portal\"}[5m])) * 60", "legendFormat": "Registrations/min" },
+        { "expr": "sum(rate(user_logins_total{job=\"startupvarsity-portal\",status=\"success\"}[5m])) * 60", "legendFormat": "Logins/min" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 10 } } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Database Query Duration (p95 by operation)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 44 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(db_query_duration_seconds_bucket{job=\"startupvarsity-portal\"}[5m])) by (le, operation))", "legendFormat": "{{ operation }} p95" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2, "fillOpacity": 10 } } },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "max"] } }
+    },
+
+    {
+      "type": "row",
+      "title": "Host Machine (EC2)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 52 },
+      "collapsed": false
+    },
+    {
+      "type": "gauge",
+      "title": "Host CPU Usage",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 53 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "100 - (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", "legendFormat": "CPU %" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "min": 0, "max": 100,
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 60 }, { "color": "red", "value": 85 }] }
+        }
+      }
+    },
+    {
+      "type": "gauge",
+      "title": "Host Memory Usage",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 53 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100", "legendFormat": "Memory %" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "min": 0, "max": 100,
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 60 }, { "color": "red", "value": 85 }] }
+        }
+      }
+    },
+    {
+      "type": "gauge",
+      "title": "Disk Usage (/)",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 53 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})) * 100", "legendFormat": "Disk %" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "min": 0, "max": 100,
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 70 }, { "color": "red", "value": 85 }] }
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Network I/O (bytes/sec)",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 53 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "rate(node_network_receive_bytes_total{device!~\"lo|docker.*\"}[5m])", "legendFormat": "RX {{ device }}" },
+        { "expr": "rate(node_network_transmit_bytes_total{device!~\"lo|docker.*\"}[5m])", "legendFormat": "TX {{ device }}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps", "custom": { "lineWidth": 2, "fillOpacity": 10 } } }
+    }
+
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["startupvarsity", "monitoring"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "StartupVarsity - Overview",
+  "uid": "startupvarsity-overview",
+  "version": 2
+}
