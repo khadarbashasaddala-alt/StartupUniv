@@ -21,7 +21,7 @@ export class ObjectNotFoundError extends Error {
 
 export class S3StorageService {
   private s3Client: S3Client;
-  private bucketName: string;
+  private bucketNameOrEmpty: string;
 
   constructor() {
     this.s3Client = new S3Client({
@@ -34,10 +34,28 @@ export class S3StorageService {
         : undefined, // Will use IAM role if running on EC2/ECS
     });
     
-    this.bucketName = process.env.AWS_S3_BUCKET_NAME || "";
-    if (!this.bucketName) {
+    this.bucketNameOrEmpty = process.env.AWS_S3_BUCKET_NAME || "";
+  }
+
+  /**
+   * Resolved on use rather than in the constructor, so a deployment with no S3
+   * configured still boots. This class is instantiated at module scope in
+   * server/s3.ts and services/payment-service.ts, so throwing from the
+   * constructor took the whole process down at import time -- which is what a
+   * deploy without AWS_S3_BUCKET_NAME did. Matches the deferred-error shape of
+   * db.ts and ConvexStorageService, where "not configured" surfaces on the
+   * first call that actually needs it.
+   */
+  private get bucketName(): string {
+    if (!this.bucketNameOrEmpty) {
       throw new Error("AWS_S3_BUCKET_NAME environment variable is required");
     }
+    return this.bucketNameOrEmpty;
+  }
+
+  /** True when a bucket is configured; lets callers fall back to Convex. */
+  isConfigured(): boolean {
+    return Boolean(this.bucketNameOrEmpty);
   }
 
   getPublicObjectSearchPaths(): Array<string> {
